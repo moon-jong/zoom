@@ -90,29 +90,21 @@ function handleCameraClick(){
 async function handleCameraChange(){
     await getMedia(camerasSelect.value);
     if(myPeerConnection){
+        const audioTrack = myStream.getAudioTracks()[0];
+        console.log("audio_enabled = ", audioTrack.enabled);
         const videoTrack = myStream.getVideoTracks()[0];
         const videoSender = myPeerConnection
         .getSenders()
         .find(sender => sender.track.kind === "video");
 
-        const audioTrack = myStream.getAudioTracks()[0];
-        const audioSender = myPeerConnection
-        .getSenders()
-        .find(sender => sender.track.kind == "audio");
-
-        videoSender.replaceTrack(videoTrack);
         if(muted){
-            audioSender.track.enabled = false;
-            audioSender.track.muted = true;
-        } else{
-            audioSender.track.enabled = true;
-            audioSender.track.muted = false;
+            audioTrack.enabled = false;
         }
-    
-        console.log(audioTrack);
+
         
+        videoSender.replaceTrack(videoTrack);
         console.log(videoSender);
-        console.log(audioSender);
+
 
     }
 
