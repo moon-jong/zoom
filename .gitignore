@@ -3,3 +3,4 @@
 *babel
 babel
 /.vscode
+.prettierrc
