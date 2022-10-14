@@ -10,7 +10,6 @@ const meshPeer = document.getElementById("peerMesh")
 const peerCtx = meshPeer.getContext("2d");
 
 
-
 let myStream;
 let muted=false;
 let cameraOff=false;
@@ -40,13 +39,6 @@ myMesh.setOptions({
   });
 myMesh['onResults'](myResults);
 
-peerMesh.setOptions({
-    maxNumFaces: 1,
-    refineLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
-  });
-
 call.hidden = true;
 myFace.hidden = true;
 
@@ -74,27 +66,6 @@ function myResults(results) {
     myCtx.restore();
   }
 
-function peerResults(results){
-    peerCtx.save();
-    peerCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
-    // peerCtx.drawImage(
-    //     results.image, 0, 0, meshCanvas.width, meshCanvas.height);
-    if (results.multiFaceLandmarks) {
-      for (const landmarks of results.multiFaceLandmarks) {
-        drawConnectors(peerCtx, landmarks, FACEMESH_TESSELATION,
-                       {color: '#C0C0C070', lineWidth: 1});
-        drawConnectors(peerCtx, landmarks, FACEMESH_RIGHT_EYE, {color: '#FF3030'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_RIGHT_EYEBROW, {color: '#FF3030'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_RIGHT_IRIS, {color: '#FF3030'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_LEFT_EYE, {color: '#30FF30'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_LEFT_EYEBROW, {color: '#30FF30'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_LEFT_IRIS, {color: '#30FF30'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_FACE_OVAL, {color: '#E0E0E0'});
-        drawConnectors(peerCtx, landmarks, FACEMESH_LIPS, {color: '#E0E0E0'});
-      }
-    }
-    peerCtx.restore();
-}
 
 const camera = new Camera(myFace, {
     onFrame: async () => {
@@ -219,9 +190,6 @@ async function initCall(){
     makeConnection();
 }
 
-// async function returnCanvas(){
-
-// }
 
 async function handleWelcomeSubmit(event){
     event.preventDefault();
@@ -273,15 +241,6 @@ socket.on("ice", (ice) => {
     myPeerConnection.addIceCandidate(ice);
 });
 
-//RTC Code 
-// function makeConnection(){
-//     myPeerConnection = new RTCPeerConnection();
-//     myPeerConnection.addEventListener("icecandidate", handleIce);
-//     myPeerConnection.addEventListener("addstream", handleAddStream);
-//     myStream
-//         .getTracks()
-//         .forEach(track => myPeerConnection.addTrack(track, myStream));
-// }
 function makeConnection(){
     myPeerConnection = new RTCPeerConnection();
     myPeerConnection.addEventListener("icecandidate", handleIce);
@@ -304,22 +263,9 @@ function handleIce(data){
     socket.emit("ice", data.candidate, roomName);
 }
 
-
-// const camera = new Camera(myFace, {
-//     onFrame: async () => {
-//       await faceMesh.send({image: myFace});
-//     },
-//     width: 1280,
-//     height: 720
-//   });
-  
-// camera.start();
-
 function handleAddStream(data) {
     const peerFace = document.getElementById("peerFace");
-    // console.log('this is stream', data.stream);
 
     peerFace.srcObject = data.stream;
-    // peerMesh.send({image: peerFace})
     
 }
