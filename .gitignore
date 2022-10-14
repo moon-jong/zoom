@@ -4,3 +4,4 @@
 babel
 /.vscode
 .prettierrc
+.DS_Store
