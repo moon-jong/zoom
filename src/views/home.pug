@@ -6,6 +6,10 @@ html(lang="en")
 		meta(name="viewport", content="width=device-width, initial-scale=1.0")
 		title Noom
 		link(rel="stylesheet", href="https://unpkg.com/mvp.css")
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js", crossorigin="anonymous") 
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js", crossorigin="anonymous") 
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", crossorigin="anonymous") 
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js", crossorigin="anonymous") 
 	body 
 		header
 			h1 Moonjong's Noom
@@ -16,11 +20,15 @@ html(lang="en")
 					button Enter Room  
 			div#call
 				div#myStream
-					video#myFace(autoplay, playsinline width="400", heigth="400")
+					p 
+						video#myFace(autoplay, playsinline, width="400", heigth="400")
+						canvas#myMesh(width="400", heigth="600")
 					button#mute mute
 					button#camera camera
 					select#cameras
 						option(value="device") Face camera
-				video#peerFace(autoplay, playsinline width="400", heigth="400")
+					p 
+						video#peerFace(autoplay, playsinline width="400", heigth="400")
+						canvas#peerMesh(width="400", heigth="600")
 		script(src="/socket.io/socket.io.js")
 		script(src="/public/js/app.js")
