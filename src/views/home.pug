@@ -10,6 +10,13 @@ html(lang="en")
 		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js", crossorigin="anonymous") 
 		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", crossorigin="anonymous") 
 		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js", crossorigin="anonymous") 
+		<script src="//cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+		<script src="//cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+		<!-- PixiJS -->
+		<script src="//cdnjs.cloudflare.com/ajax/libs/pixi.js/5.1.3/pixi.min.js"></script>
+		<script src="//cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
+		<!-- Kalidokit -->
+		<script src="//cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js"></script>
 	body 
 		header
 			h1 Moonjong's Noom
@@ -22,13 +29,15 @@ html(lang="en")
 				div#myStream
 					p 
 						video#myFace(autoplay, playsinline, width="400", heigth="400")
-						canvas#myMesh(width="400", heigth="600")
+						//- canvas#myMesh(width="600", heigth="600")
+						video#my-video(autoplay, playsinline, width="400", heigth="400")
+						canvas#my-guides(width="600", heigth="600")
+						canvas#my-live2d(width="600", heigth="600")
 					button#mute mute
 					button#camera camera
 					select#cameras
 						option(value="device") Face camera
 					p 
-						video#peerFace(autoplay, playsinline width="400", heigth="400")
-						canvas#peerMesh(width="400", heigth="600")
+						video#peerFace(autoplay, playsinline width="600", heigth="600")
 		script(src="/socket.io/socket.io.js")
 		script(src="/public/js/app.js")
