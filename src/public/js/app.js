@@ -39,7 +39,8 @@ const myMesh = new FaceMesh({locateFile: (file) => {
 
 call.hidden = true;
 myFace.hidden = true;
-
+videoElement.hidden = true;
+guideCanvas.hidden = true;
 
 
 // function myResults(results) {
