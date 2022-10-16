@@ -1,5 +1,16 @@
 # Zoom Clone WebRTC
+
+<details>
+
+<summary>Demo</summary>
+
+### Demo with out kalido
 ![demo](https://raw.githubusercontent.com/moon-jong/zoom/main/demo/demo.gif)
+
+### Demo with kalido
+![demo](https://raw.githubusercontent.com/moon-jong/zoom/main/demo/with_kalido_demo.gif)
+
+</details>
 
 Web RTC code using [Media-pipe](https://google.github.io/mediapipe/solutions/face_mesh.html) 
 
