@@ -7,11 +7,27 @@ const camerasSelect = document.getElementById("cameras");
 const videoElement = document.getElementById("my-video");
 const guideCanvas = document.getElementById("my-guides");
 const live2d = document.getElementById("my-live2d")
-let currentModel, facemesh;
-// const meshCanvas = document.getElementById("myMesh");
-// const myCtx = meshCanvas.getContext("2d");
+const remap = Kalidokit.Utils.remap;
+const clamp = Kalidokit.Utils.clamp;
+const lerp = Kalidokit.Vector.lerp;
 
-const modelUrl = "https://raw.githubusercontent.com/yeemachine/kalidokit/main/docs/models/hiyori/hiyori_pro_t10.model3.json";
+let currentVrm;
+
+const renderer = new THREE.WebGLRenderer({alpha:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+renderer.domElement.id = 'threeDID';
+// scene
+const scene = new THREE.Scene();
+scene.visible = false;
+
+const renderCanvas = document.getElementById('threeDID')
+
+let currentModel, facemesh;
+
+
+// const modelUrl = "https://raw.githubusercontent.com/yeemachine/kalidokit/main/docs/models/hiyori/hiyori_pro_t10.model3.json";
 // let myStream;
 // let muted=false;
 // let cameraOff=false;
@@ -20,62 +36,23 @@ const modelUrl = "https://raw.githubusercontent.com/yeemachine/kalidokit/main/do
 // let myDataChannel;
 // let canvasStream;
 
-canvasStream = live2d.captureStream(30);
+
+canvasStream = renderCanvas.captureStream(30);
 
 
 const call = document.getElementById("call")
 
-const myMesh = new FaceMesh({locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-  }});
-
-// myMesh.setOptions({
-//     maxNumFaces: 1,
-//     refineLandmarks: true,
-//     minDetectionConfidence: 0.5,
-//     minTrackingConfidence: 0.5
-//   });
-// myMesh['onResults'](myResults);
-
-call.hidden = true;
-myFace.hidden = true;
-videoElement.hidden = true;
-guideCanvas.hidden = true;
-
-
-// function myResults(results) {
-//     myCtx.save();
-//     myCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
-//     // myCtx.drawImage(
-//     //     results.image, 0, 0, meshCanvas.width, meshCanvas.height);
-//     if (results.multiFaceLandmarks) {
-//       for (const landmarks of results.multiFaceLandmarks) {
-//         drawConnectors(myCtx, landmarks, FACEMESH_TESSELATION,
-//                        {color: '#C0C0C070', lineWidth: 1});
-//         drawConnectors(myCtx, landmarks, FACEMESH_RIGHT_EYE, {color: '#FF3030'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_RIGHT_EYEBROW, {color: '#FF3030'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_RIGHT_IRIS, {color: '#FF3030'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LEFT_EYE, {color: '#30FF30'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LEFT_EYEBROW, {color: '#30FF30'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LEFT_IRIS, {color: '#30FF30'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_FACE_OVAL, {color: '#E0E0E0'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LIPS, {color: '#E0E0E0'});
-//       }
-//     }
-//     myCtx.restore();
-//   }
-
-
-// const camera = new Camera(myFace, {
-//     onFrame: async () => {
-//       await myMesh.send({image: myFace});
-//     },
-//     width: 1280,
-//     height: 1280
-//   });
+// const myMesh = new FaceMesh({locateFile: (file) => {
+//     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+//   }});
   
-// camera.start();
-
+async function initCall(){
+    welcome.hidden = true;
+    call.hidden = false;
+	scene.visible = true;
+    await getMedia();
+    makeConnection();
+}
 
 
 async function getCameras(){
@@ -182,12 +159,7 @@ camerasSelect.addEventListener("input", handleCameraChange);
 const welcome = document.getElementById("welcome") 
 welcomeForm = welcome.querySelector("form")
 
-async function initCall(){
-    welcome.hidden = true;
-    call.hidden = false;
-    await getMedia();
-    makeConnection();
-}
+
 
 
 async function handleWelcomeSubmit(event){
@@ -271,221 +243,340 @@ function handleAddStream(data) {
 
 
 /* Kalido app */
-const {
-	Application,
-	live2d: { Live2DModel }
-} = PIXI;
-
-const {
-	Face,
-	Vector: { lerp },
-	Utils: { clamp }
-} = Kalidokit;
 
 
 
-(async function main() {
+// camera
+const orbitCamera = new THREE.PerspectiveCamera(35,window.innerWidth / window.innerHeight,0.1,1000);
+orbitCamera.position.set(0.0, 1.4, 0.7);
 
-	const app = new PIXI.Application({
-		view: document.getElementById("my-live2d"),
-		autoStart: true,
-		backgroundAlpha: 0,
-		backgroundColor: 0xffffff,
-		resizeTo: window
-	});
+// controls
+const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
+orbitControls.screenSpacePanning = true;
+orbitControls.target.set(0.0, 1.4, 0.0);
+orbitControls.update();
 
-	currentModel = await Live2DModel.from(modelUrl, { autoInteract: false });
-	currentModel.scale.set(0.4);
-	currentModel.interactive = true;
-	currentModel.anchor.set(0.5, 0.5);
-	currentModel.position.set(window.innerWidth * 0.5, window.innerHeight * 0.8);
 
-	currentModel.on("pointerdown", e => {
-		currentModel.offsetX = e.data.global.x - currentModel.position.x;
-		currentModel.offsetY = e.data.global.y - currentModel.position.y;
-		currentModel.dragging = true;
-	});
-	currentModel.on("pointerup", e => {
-		currentModel.dragging = false;
-	});
-	currentModel.on("pointermove", e => {
-		if (currentModel.dragging) {
-			currentModel.position.set(
-				e.data.global.x - currentModel.offsetX,
-				e.data.global.y - currentModel.offsetY
-			);
-		}
-	});
+// light
+const light = new THREE.DirectionalLight(0xffffff);
+light.position.set(1.0, 1.0, 1.0).normalize();
+scene.add(light);
 
-	document.querySelector("#my-live2d").addEventListener("wheel", e => {
-		e.preventDefault();
-		currentModel.scale.set(
-			clamp(currentModel.scale.x + event.deltaY * -0.001, -0.5, 10)
-		);
-	});
+// Main Render Loop
+const clock = new THREE.Clock();
 
-	app.stage.addChild(currentModel);
+function animate() {
+  requestAnimationFrame(animate);
 
-	facemesh = new FaceMesh({
-		locateFile: file => {
-			return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-		}
-	});
-	facemesh.setOptions({
-		maxNumFaces: 1,
-		refineLandmarks: true,
-		minDetectionConfidence: 0.5,
-		minTrackingConfidence: 0.5
-	});
-	facemesh.onResults(onResults);
+  if (currentVrm) {
+    // Update model to render physics
+    currentVrm.update(clock.getDelta());
+  }
+  renderer.render(scene, orbitCamera);
+}
+animate();
 
-	startCamera();
-})();
+/* VRM CHARACTER SETUP */
 
-const onResults = results => {
-	drawResults(results.multiFaceLandmarks[0]);
-	animateLive2DModel(results.multiFaceLandmarks[0]);
-};
+// Import Character VRM
+const loader = new THREE.GLTFLoader();
+loader.crossOrigin = "anonymous";
+// Import model from URL, add your own model here
+loader.load(
+  "https://cdn.glitch.com/29e07830-2317-4b15-a044-135e73c7f840%2FAshtra.vrm?v=1630342336981",
 
-const drawResults = points => {
-	if (!guideCanvas || !videoElement || !points) return;
+  gltf => {
+    THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);
+
+    THREE.VRM.from(gltf).then(vrm => {
+      scene.add(vrm.scene);
+      currentVrm = vrm;
+      currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera
+    });
+  },
+
+  progress =>
+    console.log(
+      "Loading model...",
+      100.0 * (progress.loaded / progress.total),
+      "%"
+    ),
+
+  error => console.error(error)
+);
+
+// Animate Rotation Helper function
+const rigRotation = (
+	name,
+	rotation = { x: 0, y: 0, z: 0 },
+	dampener = 1,
+	lerpAmount = 0.3
+  ) => {
+	if (!currentVrm) {return}
+	const Part = currentVrm.humanoid.getBoneNode(
+	  THREE.VRMSchema.HumanoidBoneName[name]
+	);
+	if (!Part) {return}
+	
+	let euler = new THREE.Euler(
+	  rotation.x * dampener,
+	  rotation.y * dampener,
+	  rotation.z * dampener
+	);
+	let quaternion = new THREE.Quaternion().setFromEuler(euler);
+	Part.quaternion.slerp(quaternion, lerpAmount); // interpolate
+  };
+
+  // Animate Position Helper Function
+const rigPosition = (
+	name,
+	position = { x: 0, y: 0, z: 0 },
+	dampener = 1,
+	lerpAmount = 0.3
+  ) => {
+	if (!currentVrm) {return}
+	const Part = currentVrm.humanoid.getBoneNode(
+	  THREE.VRMSchema.HumanoidBoneName[name]
+	);
+	if (!Part) {return}
+	let vector = new THREE.Vector3(
+	  position.x * dampener,
+	  position.y * dampener,
+	  position.z * dampener
+	);
+	Part.position.lerp(vector, lerpAmount); // interpolate
+  };
+  
+  let oldLookTarget = new THREE.Euler()
+  const rigFace = (riggedFace) => {
+	  if(!currentVrm){return}
+	  rigRotation("Neck", riggedFace.head, 0.7);
+  
+	  // Blendshapes and Preset Name Schema
+	  const Blendshape = currentVrm.blendShapeProxy;
+	  const PresetName = THREE.VRMSchema.BlendShapePresetName;
+	
+	  // Simple example without winking. Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.
+	  // for VRM, 1 is closed, 0 is open.
+	  riggedFace.eye.l = lerp(clamp(1 - riggedFace.eye.l, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
+	  riggedFace.eye.r = lerp(clamp(1 - riggedFace.eye.r, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
+	  riggedFace.eye = Kalidokit.Face.stabilizeBlink(riggedFace.eye,riggedFace.head.y)
+	  Blendshape.setValue(PresetName.Blink, riggedFace.eye.l);
+	  
+	  // Interpolate and set mouth blendshapes
+	  Blendshape.setValue(PresetName.I, lerp(riggedFace.mouth.shape.I,Blendshape.getValue(PresetName.I), .5));
+	  Blendshape.setValue(PresetName.A, lerp(riggedFace.mouth.shape.A,Blendshape.getValue(PresetName.A), .5));
+	  Blendshape.setValue(PresetName.E, lerp(riggedFace.mouth.shape.E,Blendshape.getValue(PresetName.E), .5));
+	  Blendshape.setValue(PresetName.O, lerp(riggedFace.mouth.shape.O,Blendshape.getValue(PresetName.O), .5));
+	  Blendshape.setValue(PresetName.U, lerp(riggedFace.mouth.shape.U,Blendshape.getValue(PresetName.U), .5));
+  
+	  //PUPILS
+	  //interpolate pupil and keep a copy of the value
+	  let lookTarget =
+		new THREE.Euler(
+		  lerp(oldLookTarget.x , riggedFace.pupil.y, .4),
+		  lerp(oldLookTarget.y, riggedFace.pupil.x, .4),
+		  0,
+		  "XYZ"
+		)
+	  oldLookTarget.copy(lookTarget)
+	  currentVrm.lookAt.applyer.lookAt(lookTarget);
+  }
+  
+ /* VRM Character Animator */
+const animateVRM = (vrm, results) => {
+	if (!vrm) {
+	  return;
+	}   
+	// Take the results from `Holistic` and animate character based on its Face, Pose, and Hand Keypoints.
+	let riggedPose, riggedLeftHand, riggedRightHand, riggedFace;
+  
+	const faceLandmarks = results.faceLandmarks;
+	// Pose 3D Landmarks are with respect to Hip distance in meters
+	const pose3DLandmarks = results.ea;
+	// Pose 2D landmarks are with respect to videoWidth and videoHeight
+	const pose2DLandmarks = results.poseLandmarks;
+	// Be careful, hand landmarks may be reversed
+	const leftHandLandmarks = results.rightHandLandmarks;
+	const rightHandLandmarks = results.leftHandLandmarks;
+  
+	// Animate Face
+	if (faceLandmarks) {
+	 riggedFace = Kalidokit.Face.solve(faceLandmarks,{
+		runtime:"mediapipe",
+		video:videoElement
+	 });
+	 rigFace(riggedFace)
+	}
+  
+	// Animate Pose
+	if (pose2DLandmarks && pose3DLandmarks) {
+	  riggedPose = Kalidokit.Pose.solve(pose3DLandmarks, pose2DLandmarks, {
+		runtime: "mediapipe",
+		video:videoElement,
+	  });
+	  rigRotation("Hips", riggedPose.Hips.rotation, 0.7);
+	  rigPosition(
+		"Hips",
+		{
+		  x: -riggedPose.Hips.position.x, // Reverse direction
+		  y: riggedPose.Hips.position.y + 1, // Add a bit of height
+		  z: -riggedPose.Hips.position.z // Reverse direction
+		},
+		1,
+		0.07
+	  );
+  
+	  rigRotation("Chest", riggedPose.Spine, 0.25, .3);
+	  rigRotation("Spine", riggedPose.Spine, 0.45, .3);
+  
+	  rigRotation("RightUpperArm", riggedPose.RightUpperArm, 1, .3);
+	  rigRotation("RightLowerArm", riggedPose.RightLowerArm, 1, .3);
+	  rigRotation("LeftUpperArm", riggedPose.LeftUpperArm, 1, .3);
+	  rigRotation("LeftLowerArm", riggedPose.LeftLowerArm, 1, .3);
+  
+	  rigRotation("LeftUpperLeg", riggedPose.LeftUpperLeg, 1, .3);
+	  rigRotation("LeftLowerLeg", riggedPose.LeftLowerLeg, 1, .3);
+	  rigRotation("RightUpperLeg", riggedPose.RightUpperLeg, 1, .3);
+	  rigRotation("RightLowerLeg", riggedPose.RightLowerLeg, 1, .3);
+	}
+  
+	// Animate Hands
+	if (leftHandLandmarks) {
+	  riggedLeftHand = Kalidokit.Hand.solve(leftHandLandmarks, "Left");
+	  rigRotation("LeftHand", {
+		// Combine pose rotation Z and hand rotation X Y
+		z: riggedPose.LeftHand.z,
+		y: riggedLeftHand.LeftWrist.y,
+		x: riggedLeftHand.LeftWrist.x
+	  });
+	  rigRotation("LeftRingProximal", riggedLeftHand.LeftRingProximal);
+	  rigRotation("LeftRingIntermediate", riggedLeftHand.LeftRingIntermediate);
+	  rigRotation("LeftRingDistal", riggedLeftHand.LeftRingDistal);
+	  rigRotation("LeftIndexProximal", riggedLeftHand.LeftIndexProximal);
+	  rigRotation("LeftIndexIntermediate", riggedLeftHand.LeftIndexIntermediate);
+	  rigRotation("LeftIndexDistal", riggedLeftHand.LeftIndexDistal);
+	  rigRotation("LeftMiddleProximal", riggedLeftHand.LeftMiddleProximal);
+	  rigRotation("LeftMiddleIntermediate", riggedLeftHand.LeftMiddleIntermediate);
+	  rigRotation("LeftMiddleDistal", riggedLeftHand.LeftMiddleDistal);
+	  rigRotation("LeftThumbProximal", riggedLeftHand.LeftThumbProximal);
+	  rigRotation("LeftThumbIntermediate", riggedLeftHand.LeftThumbIntermediate);
+	  rigRotation("LeftThumbDistal", riggedLeftHand.LeftThumbDistal);
+	  rigRotation("LeftLittleProximal", riggedLeftHand.LeftLittleProximal);
+	  rigRotation("LeftLittleIntermediate", riggedLeftHand.LeftLittleIntermediate);
+	  rigRotation("LeftLittleDistal", riggedLeftHand.LeftLittleDistal);
+	}
+	if (rightHandLandmarks) {
+	  riggedRightHand = Kalidokit.Hand.solve(rightHandLandmarks, "Right");
+	  rigRotation("RightHand", {
+		// Combine Z axis from pose hand and X/Y axis from hand wrist rotation
+		z: riggedPose.RightHand.z,
+		y: riggedRightHand.RightWrist.y,
+		x: riggedRightHand.RightWrist.x
+	  });
+	  rigRotation("RightRingProximal", riggedRightHand.RightRingProximal);
+	  rigRotation("RightRingIntermediate", riggedRightHand.RightRingIntermediate);
+	  rigRotation("RightRingDistal", riggedRightHand.RightRingDistal);
+	  rigRotation("RightIndexProximal", riggedRightHand.RightIndexProximal);
+	  rigRotation("RightIndexIntermediate",riggedRightHand.RightIndexIntermediate);
+	  rigRotation("RightIndexDistal", riggedRightHand.RightIndexDistal);
+	  rigRotation("RightMiddleProximal", riggedRightHand.RightMiddleProximal);
+	  rigRotation("RightMiddleIntermediate", riggedRightHand.RightMiddleIntermediate);
+	  rigRotation("RightMiddleDistal", riggedRightHand.RightMiddleDistal);
+	  rigRotation("RightThumbProximal", riggedRightHand.RightThumbProximal);
+	  rigRotation("RightThumbIntermediate", riggedRightHand.RightThumbIntermediate);
+	  rigRotation("RightThumbDistal", riggedRightHand.RightThumbDistal);
+	  rigRotation("RightLittleProximal", riggedRightHand.RightLittleProximal);
+	  rigRotation("RightLittleIntermediate", riggedRightHand.RightLittleIntermediate);
+	  rigRotation("RightLittleDistal", riggedRightHand.RightLittleDistal);
+	}
+  };
+
+/* SETUP MEDIAPIPE HOLISTIC INSTANCE */
+/* already setted */
+
+
+const onResults = (results) => {
+	// Draw landmark guides
+	drawResults(results)
+	// Animate model
+	animateVRM(currentVrm, results);
+  }
+  
+const holistic = new Holistic({
+	locateFile: file => {
+	return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
+	}
+});
+
+holistic.setOptions({
+	modelComplexity: 1,
+	smoothLandmarks: true,
+	minDetectionConfidence: 0.7,
+	minTrackingConfidence: 0.7,
+	refineFaceLandmarks: true,
+});
+// Pass holistic a callback function
+holistic.onResults(onResults);
+
+const drawResults = (results) => {
 	guideCanvas.width = videoElement.videoWidth;
 	guideCanvas.height = videoElement.videoHeight;
-	let canvasCtx = guideCanvas.getContext("2d");
+	let canvasCtx = guideCanvas.getContext('2d');
 	canvasCtx.save();
 	canvasCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
-	drawConnectors(canvasCtx, points, FACEMESH_TESSELATION, {
+	// Use `Mediapipe` drawing functions
+	drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+		color: "#00cff7",
+		lineWidth: 4
+		});
+		drawLandmarks(canvasCtx, results.poseLandmarks, {
+		color: "#ff0364",
+		lineWidth: 2
+		});
+		drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION, {
 		color: "#C0C0C070",
 		lineWidth: 1
-	});
-	if (points && points.length === 478) {
-		drawLandmarks(canvasCtx, [points[468], points[468 + 5]], {
+		});
+		if(results.faceLandmarks && results.faceLandmarks.length === 478){
+		//draw pupils
+		drawLandmarks(canvasCtx, [results.faceLandmarks[468],results.faceLandmarks[468+5]], {
 			color: "#ffe603",
 			lineWidth: 2
 		});
+		}
+		drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {
+		color: "#eb1064",
+		lineWidth: 5
+		});
+		drawLandmarks(canvasCtx, results.leftHandLandmarks, {
+		color: "#00cff7",
+		lineWidth: 2
+		});
+		drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {
+		color: "#22c3e3",
+		lineWidth: 5
+		});
+		drawLandmarks(canvasCtx, results.rightHandLandmarks, {
+		color: "#ff0364",
+		lineWidth: 2
+		});
 	}
-};
 
-const animateLive2DModel = points => {
-	if(!currentModel || !points) return;
-	let riggedFace = Face.solve(points, {
-		runtime: "mediapipe",
-		video: videoElement
-	});
-	rigFace(riggedFace, 0.5);
-};
+// Use `Mediapipe` utils to get camera - lower resolution = higher fps
+const camera = new Camera(videoElement, {
+	onFrame: async () => {
+	  await holistic.send({image: videoElement});
+	},
+	width: 640,
+	height: 480
+  });
 
-const rigFace = (result, lerpAmount = 0.7) => {
-	if (!currentModel || !result) return;
-	const updateFn = currentModel.internalModel.motionManager.update;
-	const coreModel = currentModel.internalModel.coreModel;
+camera.start();
 
-	currentModel.internalModel.motionManager.update = (...args) => {
-		currentModel.internalModel.eyeBlink = undefined;
+call.hidden = true;
+myFace.hidden = true;
+videoElement.hidden = true;
+guideCanvas.hidden = true;
 
-		coreModel.setParameterValueById(
-			"ParamEyeBallX",
-			lerp(
-				result.pupil.x,
-				coreModel.getParameterValueById("ParamEyeBallX"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamEyeBallY",
-			lerp(
-				result.pupil.y,
-				coreModel.getParameterValueById("ParamEyeBallY"),
-				lerpAmount
-			)
-		);
 
-		coreModel.setParameterValueById(
-			"ParamAngleX",
-			lerp(
-				result.head.degrees.y,
-				coreModel.getParameterValueById("ParamAngleX"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamAngleY",
-			lerp(
-				result.head.degrees.x,
-				coreModel.getParameterValueById("ParamAngleY"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamAngleZ",
-			lerp(
-				result.head.degrees.z,
-				coreModel.getParameterValueById("ParamAngleZ"),
-				lerpAmount
-			)
-		);
-
-		const dampener = 0.3;
-		coreModel.setParameterValueById(
-			"ParamBodyAngleX",
-			lerp(
-				result.head.degrees.y * dampener,
-				coreModel.getParameterValueById("ParamBodyAngleX"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamBodyAngleY",
-			lerp(
-				result.head.degrees.x * dampener,
-				coreModel.getParameterValueById("ParamBodyAngleY"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamBodyAngleZ",
-			lerp(
-				result.head.degrees.z * dampener,
-				coreModel.getParameterValueById("ParamBodyAngleZ"),
-				lerpAmount
-			)
-		);
-
-		let stabilizedEyes = Kalidokit.Face.stabilizeBlink(
-			{
-				l: lerp(
-					result.eye.l,
-					coreModel.getParameterValueById("ParamEyeLOpen"),
-					0.7
-				),
-				r: lerp(
-					result.eye.r,
-					coreModel.getParameterValueById("ParamEyeROpen"),
-					0.7
-				)
-			},
-			result.head.y
-		);
-
-		coreModel.setParameterValueById("ParamEyeLOpen", stabilizedEyes.l);
-		coreModel.setParameterValueById("ParamEyeROpen", stabilizedEyes.r);
-		coreModel.setParameterValueById(
-			"ParamMouthOpenY", 
-			lerp(result.mouth.y, coreModel.getParameterValueById("ParamMouthOpenY"), 0.3)
-		);
-		coreModel.setParameterValueById(
-			"ParamMouthForm",
-			0.3 + lerp(result.mouth.x, coreModel.getParameterValueById("ParamMouthForm"), 0.3)
-		);
-	};
-};
-
-const startCamera = ()=>{
-	const camera = new Camera(videoElement, {
-		onFrame: async ()=>{
-			await facemesh.send({ image: videoElement });
-		},
-		width: 640, height: 480
-	});
-	camera.start();
-};
