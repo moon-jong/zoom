@@ -50,16 +50,15 @@ html(lang="en")
 			div#call
 				div#myStream
 					p 
-						video#myFace(autoplay, playsinline, width="400", heigth="400")
-						//- canvas#myMesh(width="600", heigth="600")
+					ul#videos
 						video#my-video(autoplay, playsinline, width="400", heigth="400")
 						canvas#my-guides(width="600", heigth="600")
-						canvas#my-live2d(width="600", heigth="600")
 					button#mute mute
 					button#camera camera
 					select#cameras
 						option(value="device") Face camera
 					p 
 						video#peerFace(autoplay, playsinline width="600", heigth="600")
+		script(src="/three/three.js")
 		script(src="/socket.io/socket.io.js")
 		script(src="/public/js/app.js")

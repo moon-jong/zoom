@@ -1,22 +1,23 @@
 const socket = io();
 
-const myFace = document.getElementById("myFace");
 const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
 const camerasSelect = document.getElementById("cameras");
 const videoElement = document.getElementById("my-video");
 const guideCanvas = document.getElementById("my-guides");
-const live2d = document.getElementById("my-live2d")
+const live2d = document.getElementById("my-live2d");
+const ul = document.getElementById("videos");
 const remap = Kalidokit.Utils.remap;
 const clamp = Kalidokit.Utils.clamp;
 const lerp = Kalidokit.Vector.lerp;
 
 let currentVrm;
+let mute = false;
 
 const renderer = new THREE.WebGLRenderer({alpha:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(640, 480);
 renderer.setPixelRatio(window.devicePixelRatio);
-document.body.appendChild(renderer.domElement);
+ul.append(renderer.domElement);
 renderer.domElement.id = 'threeDID';
 // scene
 const scene = new THREE.Scene();
@@ -25,16 +26,6 @@ scene.visible = false;
 const renderCanvas = document.getElementById('threeDID')
 
 let currentModel, facemesh;
-
-
-// const modelUrl = "https://raw.githubusercontent.com/yeemachine/kalidokit/main/docs/models/hiyori/hiyori_pro_t10.model3.json";
-// let myStream;
-// let muted=false;
-// let cameraOff=false;
-// let roomName;
-// let myPeerConnection;
-// let myDataChannel;
-// let canvasStream;
 
 
 canvasStream = renderCanvas.captureStream(30);
@@ -50,6 +41,7 @@ async function initCall(){
     welcome.hidden = true;
     call.hidden = false;
 	scene.visible = true;
+    guideCanvas.hidden = false;
     await getMedia();
     makeConnection();
 }
@@ -88,7 +80,7 @@ async function getMedia(deviceId){
             deviceId? cameraConstraints : initialContrains
             );
 
-            myFace.srcObject = myStream;
+            videoElement.srcObject = myStream;
 
             if(!deviceId){
                 await getCameras();
@@ -251,10 +243,10 @@ const orbitCamera = new THREE.PerspectiveCamera(35,window.innerWidth / window.in
 orbitCamera.position.set(0.0, 1.4, 0.7);
 
 // controls
-const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
-orbitControls.screenSpacePanning = true;
-orbitControls.target.set(0.0, 1.4, 0.0);
-orbitControls.update();
+// const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
+// orbitControls.screenSpacePanning = false;
+// orbitControls.target.set(0.0, 1.4, 0.0);
+// orbitControls.update();
 
 
 // light
@@ -390,6 +382,8 @@ const animateVRM = (vrm, results) => {
 	}   
 	// Take the results from `Holistic` and animate character based on its Face, Pose, and Hand Keypoints.
 	let riggedPose, riggedLeftHand, riggedRightHand, riggedFace;
+    let renderCtx = renderCanvas.getContext('2d');
+
   
 	const faceLandmarks = results.faceLandmarks;
 	// Pose 3D Landmarks are with respect to Hip distance in meters
@@ -399,6 +393,7 @@ const animateVRM = (vrm, results) => {
 	// Be careful, hand landmarks may be reversed
 	const leftHandLandmarks = results.rightHandLandmarks;
 	const rightHandLandmarks = results.leftHandLandmarks;
+    const realResult = results.image;
   
 	// Animate Face
 	if (faceLandmarks) {
@@ -490,6 +485,10 @@ const animateVRM = (vrm, results) => {
 	  rigRotation("RightLittleIntermediate", riggedRightHand.RightLittleIntermediate);
 	  rigRotation("RightLittleDistal", riggedRightHand.RightLittleDistal);
 	}
+    // if (realResult) {
+    //     renderCtx.drawImage(realResult, 0, 0, renderCtx.width, renderCtx.height);
+        
+    //   }
   };
 
 /* SETUP MEDIAPIPE HOLISTIC INSTANCE */
@@ -525,6 +524,8 @@ const drawResults = (results) => {
 	let canvasCtx = guideCanvas.getContext('2d');
 	canvasCtx.save();
 	canvasCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+    canvasCtx.drawImage(results.image, 0, 0, guideCanvas.width, guideCanvas.height);
+
 	// Use `Mediapipe` drawing functions
 	drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
 		color: "#00cff7",
@@ -575,7 +576,6 @@ const camera = new Camera(videoElement, {
 camera.start();
 
 call.hidden = true;
-myFace.hidden = true;
 videoElement.hidden = true;
 guideCanvas.hidden = true;
 
