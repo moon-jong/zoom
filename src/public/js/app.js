@@ -19,6 +19,8 @@ renderer.setSize(640, 480);
 renderer.setPixelRatio(window.devicePixelRatio);
 ul.append(renderer.domElement);
 renderer.domElement.id = 'threeDID';
+const gl = renderer.getContext('webgl');
+
 // scene
 const scene = new THREE.Scene();
 scene.visible = false;
@@ -323,8 +325,8 @@ const rigRotation = (
 const rigPosition = (
 	name,
 	position = { x: 0, y: 0, z: 0 },
-	dampener = 1,
-	lerpAmount = 0.3
+	dampener = 10,
+	lerpAmount = 10
   ) => {
 	if (!currentVrm) {return}
 	const Part = currentVrm.humanoid.getBoneNode(
@@ -393,7 +395,6 @@ const animateVRM = (vrm, results) => {
 	// Be careful, hand landmarks may be reversed
 	const leftHandLandmarks = results.rightHandLandmarks;
 	const rightHandLandmarks = results.leftHandLandmarks;
-    const realResult = results.image;
   
 	// Animate Face
 	if (faceLandmarks) {
@@ -414,7 +415,7 @@ const animateVRM = (vrm, results) => {
 	  rigPosition(
 		"Hips",
 		{
-		  x: -riggedPose.Hips.position.x, // Reverse direction
+		  x: riggedPose.Hips.position.x, // Reverse direction
 		  y: riggedPose.Hips.position.y + 1, // Add a bit of height
 		  z: -riggedPose.Hips.position.z // Reverse direction
 		},
@@ -564,7 +565,7 @@ const drawResults = (results) => {
 		});
 	}
 
-// Use `Mediapipe` utils to get camera - lower resolution = higher fps
+
 const camera = new Camera(videoElement, {
 	onFrame: async () => {
 	  await holistic.send({image: videoElement});
@@ -578,5 +579,6 @@ camera.start();
 call.hidden = true;
 videoElement.hidden = true;
 guideCanvas.hidden = true;
+guideCanvas.style.webkitTransform = "scaleX(-1)";
 
 
