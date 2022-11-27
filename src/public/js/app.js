@@ -1,3 +1,7 @@
+import { getHeadInfo, drawLine } from "./canvas_utils.js";
+// import {FirstPersonControls} from "./FirstPersonControls.js"
+// import * as THREE from "../three/three.js";
+
 const socket = io();
 
 const muteBtn = document.getElementById("mute");
@@ -21,16 +25,18 @@ ul.append(renderer.domElement);
 renderer.domElement.id = 'threeDID';
 const gl = renderer.getContext('webgl');
 
+
 // scene
 const scene = new THREE.Scene();
 scene.visible = false;
 
-const renderCanvas = document.getElementById('threeDID')
-
+const renderCanvas = document.getElementById('threeDID');
+guideCanvas.style.position = 'absolute';
+renderCanvas.style.position = 'absolute';
 let currentModel, facemesh;
 
 
-canvasStream = renderCanvas.captureStream(30);
+let canvasStream = renderCanvas.captureStream(30);
 
 
 const call = document.getElementById("call")
@@ -151,7 +157,7 @@ camerasSelect.addEventListener("input", handleCameraChange);
 
 // Welcome Form (join room)
 const welcome = document.getElementById("welcome") 
-welcomeForm = welcome.querySelector("form")
+let welcomeForm = welcome.querySelector("form")
 
 
 
@@ -161,7 +167,7 @@ async function handleWelcomeSubmit(event){
     const input = welcomeForm.querySelector("input");
     await initCall();
     socket.emit("join_room", input.value);
-    roomName = input.value;
+    let roomName = input.value;
     input.value = "";
 }
 
@@ -207,7 +213,7 @@ socket.on("ice", (ice) => {
 });
 
 function makeConnection(){
-    myPeerConnection = new RTCPeerConnection();
+    let myPeerConnection = new RTCPeerConnection();
     myPeerConnection.addEventListener("icecandidate", handleIce);
     myPeerConnection.addEventListener("addstream", handleAddStream);
     myPeerConnection.addStream(canvasStream);
@@ -241,13 +247,15 @@ function handleAddStream(data) {
 
 
 // camera
-const orbitCamera = new THREE.PerspectiveCamera(35,window.innerWidth / window.innerHeight,0.1,1000);
-orbitCamera.position.set(0.0, 1.4, 0.7);
+const orbitCamera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1,1000);
+// const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
+orbitCamera.position.set(0.0, 0, 0.7);
+
 
 // controls
 // const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
 // orbitControls.screenSpacePanning = false;
-// orbitControls.target.set(0.0, 1.4, 0.0);
+// orbitControls.target.set(0.0, 0.0, 0.0);
 // orbitControls.update();
 
 
@@ -265,6 +273,9 @@ function animate() {
   if (currentVrm) {
     // Update model to render physics
     currentVrm.update(clock.getDelta());
+	currentVrm.scene.children[4].visible =false;
+	currentVrm.scene.children[1].visible =false;
+	
   }
   renderer.render(scene, orbitCamera);
 }
@@ -284,6 +295,9 @@ loader.load(
 
     THREE.VRM.from(gltf).then(vrm => {
       scene.add(vrm.scene);
+	  scene.add( lineX );
+	  scene.add( lineY );
+	  scene.add( lineZ );
       currentVrm = vrm;
       currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera
     });
@@ -384,7 +398,6 @@ const animateVRM = (vrm, results) => {
 	}   
 	// Take the results from `Holistic` and animate character based on its Face, Pose, and Hand Keypoints.
 	let riggedPose, riggedLeftHand, riggedRightHand, riggedFace;
-    let renderCtx = renderCanvas.getContext('2d');
 
   
 	const faceLandmarks = results.faceLandmarks;
@@ -402,7 +415,12 @@ const animateVRM = (vrm, results) => {
 		runtime:"mediapipe",
 		video:videoElement
 	 });
-	 rigFace(riggedFace)
+	 rigFace(riggedFace);
+
+	//  let line = drawCamHeadLine(orbitCamera, riggedFace);
+	//  currentVrm.scene.add(line);
+
+
 	}
   
 	// Animate Pose
@@ -436,7 +454,7 @@ const animateVRM = (vrm, results) => {
 	  rigRotation("RightUpperLeg", riggedPose.RightUpperLeg, 1, .3);
 	  rigRotation("RightLowerLeg", riggedPose.RightLowerLeg, 1, .3);
 	}
-  
+
 	// Animate Hands
 	if (leftHandLandmarks) {
 	  riggedLeftHand = Kalidokit.Hand.solve(leftHandLandmarks, "Left");
@@ -495,13 +513,75 @@ const animateVRM = (vrm, results) => {
 /* SETUP MEDIAPIPE HOLISTIC INSTANCE */
 /* already setted */
 
+function drawCamHeadLine(cam, face){
+	const material = new THREE.LineBasicMaterial({
+		color: 0x0000ff
+	});
+
+	const line = [];
+	const cameraPoint = new THREE.Vector3( cam.position.x, cam.position.y, cam.position.z );
+	const facePoint = new THREE.Vector3( face.head.x, face.head.y, face.head.z);
+	
+	line.push(cameraPoint);
+	line.push(facePoint);
+
+	const geometry = new THREE.BufferGeometry().setFromPoints( line );
+	const lineThree = new THREE.Line( geometry, material );
+
+
+	return lineThree
+}
+
 
 const onResults = (results) => {
 	// Draw landmark guides
 	drawResults(results)
+	let headInfo = getHeadInfo(results);
+	if (headInfo !== null){
+		// console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
+		orbitCamera.position.x = headInfo.position.x - 0.5;
+		orbitCamera.position.y = headInfo.position.y - 0.45;
+		orbitCamera.position.z = (1 / headInfo.faceSize) * 0.1;
+	}
+	// orbitCamera.position.x = headInfo.position.x - 0.5;
+	// orbitCamera.position.y = headInfo.position.y - 0.5;
+	// orbitCamera.position.z = headInfo.faceSize * 3;
+	// console.log(orbitCamera.position.x, orbitCamera.position.y, orbitCamera.position.z);
 	// Animate model
 	animateVRM(currentVrm, results);
+	setBackbonePosition(currentVrm, [0, 0, 0]);
   }
+const material = new THREE.LineBasicMaterial({
+	color: 0x0000ff
+});
+
+const xLine = [];
+const yLine = [];
+const zLine = [];
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const giudeX = new THREE.Vector3( 10, 0, 0 );
+const guideY = new THREE.Vector3( 0, 10, 0 );
+const guideZ = new THREE.Vector3( 0, 0, 10);
+
+xLine.push( origin );
+xLine.push( giudeX );
+
+yLine.push(origin);
+yLine.push(guideY);
+
+zLine.push(origin);
+zLine.push(guideZ);
+
+
+const geometryX = new THREE.BufferGeometry().setFromPoints( xLine );
+const geometryY = new THREE.BufferGeometry().setFromPoints( yLine );
+const geometryZ = new THREE.BufferGeometry().setFromPoints( zLine );
+const lineX = new THREE.Line( geometryX, material );
+const lineY = new THREE.Line( geometryY, material );
+const lineZ = new THREE.Line( geometryZ, material )
+
+
   
 const holistic = new Holistic({
 	locateFile: file => {
@@ -516,13 +596,25 @@ holistic.setOptions({
 	minTrackingConfidence: 0.7,
 	refineFaceLandmarks: true,
 });
+
 // Pass holistic a callback function
 holistic.onResults(onResults);
+
+const setBackbonePosition = ( vrm, [x, y, z]) =>{
+    vrm.scene.children[0].position.set(x,y,z);  // "Root"
+    vrm.scene.children[0].children[0].position.set(x,y,z);  // "J_Bip_C_Hips"
+    vrm.scene.children[0].children[0].children[0].position.set(x,y,z);  // "J_Bip_C_Spine"
+    vrm.scene.children[0].children[0].children[0].children[0].position.set(x,y,z);  // "J_Bip_C_Chest"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].position.set(x,y,z);// "J_Bip_C_UpperChest"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].position.set(x,y,z);  // "J_Bip_C_Neck"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].position.set(x,y,z);  // "J_Bip_C_Head"
+}
+
 
 const drawResults = (results) => {
 	guideCanvas.width = videoElement.videoWidth;
 	guideCanvas.height = videoElement.videoHeight;
-	let canvasCtx = guideCanvas.getContext('2d');
+let canvasCtx = guideCanvas.getContext('2d');
 	canvasCtx.save();
 	canvasCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
     canvasCtx.drawImage(results.image, 0, 0, guideCanvas.width, guideCanvas.height);
@@ -581,4 +673,7 @@ videoElement.hidden = true;
 guideCanvas.hidden = true;
 guideCanvas.style.webkitTransform = "scaleX(-1)";
 
+
+// camW = myFace.srcObject.getVideoTracks()[0].getSettings().width;
+// camH = myFace.srcObject.getVideoTracks()[0].getSettings().height;
 

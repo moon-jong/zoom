@@ -59,6 +59,9 @@ html(lang="en")
 						option(value="device") Face camera
 					p 
 						video#peerFace(autoplay, playsinline width="600", heigth="600")
-		script(src="/three/three.js")
 		script(src="/socket.io/socket.io.js")
-		script(src="/public/js/app.js")
+		script(type="module", src="/public/js/app.js")
+		script(type="module", src="/public/js/canvas_utils.js")
+		script(type="module", src="/public/js/vector.js")
+		script(type="module", src="/public/js/constants.js")
+		script(type="module", src="/public/js/FirstPersonControls.js")
