@@ -1,4 +1,4 @@
-import { getHeadInfo, drawLine } from "./canvas_utils.js";
+import { getHeadInfo, drawLine, fillFaceAll, fillFaceOutline } from "./canvas_utils.js";
 // import {FirstPersonControls} from "./FirstPersonControls.js"
 // import * as THREE from "../three/three.js";
 
@@ -11,9 +11,18 @@ const videoElement = document.getElementById("my-video");
 const guideCanvas = document.getElementById("my-guides");
 const live2d = document.getElementById("my-live2d");
 const ul = document.getElementById("videos");
+const alpha = document.getElementById("alpha");
+const beta = document.getElementById("beta");
+const gamma = document.getElementById("gamma");
+const alphaValue = document.getElementById("alphaValue");
+const betaValue = document.getElementById("betaValue");
+const gammaValue = document.getElementById("gammaValue");
 const remap = Kalidokit.Utils.remap;
 const clamp = Kalidokit.Utils.clamp;
 const lerp = Kalidokit.Vector.lerp;
+
+
+
 
 let currentVrm;
 let mute = false;
@@ -24,6 +33,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 ul.append(renderer.domElement);
 renderer.domElement.id = 'threeDID';
 const gl = renderer.getContext('webgl');
+const guideCtx = guideCanvas.getContext('2d');
 
 
 // scene
@@ -31,8 +41,6 @@ const scene = new THREE.Scene();
 scene.visible = false;
 
 const renderCanvas = document.getElementById('threeDID');
-guideCanvas.style.position = 'absolute';
-renderCanvas.style.position = 'absolute';
 let currentModel, facemesh;
 
 
@@ -247,22 +255,36 @@ function handleAddStream(data) {
 
 
 // camera
-const orbitCamera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1,1000);
+const orbitCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 100);
+// const orbitCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 1, 1000)
+// orbitCamera.zoom = 0.1;
 // const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
+const fullW = window.innerWidth;
+const fullH= window.innerHeight;
+
+// const geometry = new THREE.BoxGeometry( 4, 4, 4 );
+// const mate = new THREE.MeshBasicMaterial( { color: 0x777777 } );
+// const cube = new THREE.Mesh( geometry, mate );
+// cube.position.set( 0, 0, 0 );
+// scene.add(cube);
+
+// orbitCamera.setViewOffset(fullW, fullH, fullW / 2, fullH / 2, fullW, fullH);
 orbitCamera.position.set(0.0, 0, 0.7);
 
 
 // controls
-// const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
-// orbitControls.screenSpacePanning = false;
-// orbitControls.target.set(0.0, 0.0, 0.0);
-// orbitControls.update();
+const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
+// orbitControls.enabled = false;
+orbitControls.screenSpacePanning = true;
+orbitControls.target.set(0.0, 0.0, 0.0);
+orbitControls.update();
 
 
 // light
 const light = new THREE.DirectionalLight(0xffffff);
 light.position.set(1.0, 1.0, 1.0).normalize();
 scene.add(light);
+
 
 // Main Render Loop
 const clock = new THREE.Clock();
@@ -358,7 +380,7 @@ const rigPosition = (
   let oldLookTarget = new THREE.Euler()
   const rigFace = (riggedFace) => {
 	  if(!currentVrm){return}
-	  rigRotation("Neck", riggedFace.head, 0.7);
+	  rigRotation("Head", riggedFace.head, 0.7);
   
 	  // Blendshapes and Preset Name Schema
 	  const Blendshape = currentVrm.blendShapeProxy;
@@ -536,13 +558,25 @@ function drawCamHeadLine(cam, face){
 const onResults = (results) => {
 	// Draw landmark guides
 	drawResults(results)
+	alphaValue.innerHTML = alpha.value * 0.1;
+	betaValue.innerHTML = beta.value * 0.1;
+	gammaValue.innerHTML = gamma.value * 0.1;
+
+	// fillFaceAll(guideCanvas, guideCtx, results, "blanck");  // 얼굴 triangle 다 채워주는거
+    // fillFaceOutline(guideCanvas, guideCtx, results, "purple");  // 얼굴 외곽선 안쪽 채워주는거 
 	let headInfo = getHeadInfo(results);
 	if (headInfo !== null){
-		// console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
-		orbitCamera.position.x = headInfo.position.x - 0.5;
-		orbitCamera.position.y = headInfo.position.y - 0.45;
-		orbitCamera.position.z = (1 / headInfo.faceSize) * 0.1;
+	// 	// console.log('head');
+	// 	// console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
+		orbitCamera.position.x = (headInfo.position.x - 0.5) * alpha.value * 0.1;
+		orbitCamera.position.y =(headInfo.position.y - 0.4) * beta.value * 0.1;
+		if (1 - headInfo.position.z * 7 >= 0.5){
+		orbitCamera.position.z =  0.5 - (headInfo.position.z * gamma.value * 0.1) ** 2;
+		}
+		orbitControls.target.set(headInfo.position.x -0.5 , headInfo.position.y -0.5, 0);
+		// console.log('head depth' ,  1 - headInfo.position.z * 7);
 	}
+	// console.log('camera')
 	// orbitCamera.position.x = headInfo.position.x - 0.5;
 	// orbitCamera.position.y = headInfo.position.y - 0.5;
 	// orbitCamera.position.z = headInfo.faceSize * 3;
@@ -672,7 +706,8 @@ call.hidden = true;
 videoElement.hidden = true;
 guideCanvas.hidden = true;
 guideCanvas.style.webkitTransform = "scaleX(-1)";
-
+guideCanvas.style.position = 'absolute';
+renderCanvas.style.position = 'absolute';
 
 // camW = myFace.srcObject.getVideoTracks()[0].getSettings().width;
 // camH = myFace.srcObject.getVideoTracks()[0].getSettings().height;

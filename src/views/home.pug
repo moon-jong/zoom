@@ -46,8 +46,15 @@ html(lang="en")
 			div#welcome
 				form
 					input(placeholdeer="room name", required, type="text")
-					button Enter Room  
+					button Enter Room 
 			div#call
+
+				input#alpha(type="range", min= "0", max="100", value="8")
+				span#alphaValue Value:
+				input#beta(type="range", min= "0", max="100", value="4")
+				span#betaValue Value:
+				input#gamma(type="range", min= "0", max="100", value="6.3")
+				span#gammaValue Value:
 				div#myStream
 					p 
 					ul#videos
@@ -55,10 +62,13 @@ html(lang="en")
 						canvas#my-guides(width="600", heigth="600")
 					button#mute mute
 					button#camera camera
+					
+					p 
 					select#cameras
 						option(value="device") Face camera
 					p 
 						video#peerFace(autoplay, playsinline width="600", heigth="600")
+				div 
 		script(src="/socket.io/socket.io.js")
 		script(type="module", src="/public/js/app.js")
 		script(type="module", src="/public/js/canvas_utils.js")
