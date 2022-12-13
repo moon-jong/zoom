@@ -255,7 +255,9 @@ function handleAddStream(data) {
 
 
 // camera
-const orbitCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 100);
+const fo = 30;
+const zPosition = 1 / (Math.tan(15 * (Math.PI / 180)));
+const orbitCamera = new THREE.PerspectiveCamera(fo, 1, 0.1, 200);
 // const orbitCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 1, 1000)
 // orbitCamera.zoom = 0.1;
 // const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
@@ -269,14 +271,14 @@ const fullH= window.innerHeight;
 // scene.add(cube);
 
 // orbitCamera.setViewOffset(fullW, fullH, fullW / 2, fullH / 2, fullW, fullH);
-orbitCamera.position.set(0.0, 0, 0.7);
+orbitCamera.position.set(0, 0, zPosition);
 
 
 // controls
 const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
 // orbitControls.enabled = false;
-orbitControls.screenSpacePanning = true;
-orbitControls.target.set(0.0, 0.0, 0.0);
+// orbitControls.screenSpacePanning = true;
+// orbitControls.target.set(0.0, 0.0, 0.0);
 orbitControls.update();
 
 
@@ -423,13 +425,6 @@ const animateVRM = (vrm, results) => {
 
   
 	const faceLandmarks = results.faceLandmarks;
-	// Pose 3D Landmarks are with respect to Hip distance in meters
-	const pose3DLandmarks = results.ea;
-	// Pose 2D landmarks are with respect to videoWidth and videoHeight
-	const pose2DLandmarks = results.poseLandmarks;
-	// Be careful, hand landmarks may be reversed
-	const leftHandLandmarks = results.rightHandLandmarks;
-	const rightHandLandmarks = results.leftHandLandmarks;
   
 	// Animate Face
 	if (faceLandmarks) {
@@ -439,97 +434,8 @@ const animateVRM = (vrm, results) => {
 	 });
 	 rigFace(riggedFace);
 
-	//  let line = drawCamHeadLine(orbitCamera, riggedFace);
-	//  currentVrm.scene.add(line);
-
 
 	}
-  
-	// Animate Pose
-	if (pose2DLandmarks && pose3DLandmarks) {
-	  riggedPose = Kalidokit.Pose.solve(pose3DLandmarks, pose2DLandmarks, {
-		runtime: "mediapipe",
-		video:videoElement,
-	  });
-	  rigRotation("Hips", riggedPose.Hips.rotation, 0.7);
-	  rigPosition(
-		"Hips",
-		{
-		  x: riggedPose.Hips.position.x, // Reverse direction
-		  y: riggedPose.Hips.position.y + 1, // Add a bit of height
-		  z: -riggedPose.Hips.position.z // Reverse direction
-		},
-		1,
-		0.07
-	  );
-  
-	  rigRotation("Chest", riggedPose.Spine, 0.25, .3);
-	  rigRotation("Spine", riggedPose.Spine, 0.45, .3);
-  
-	  rigRotation("RightUpperArm", riggedPose.RightUpperArm, 1, .3);
-	  rigRotation("RightLowerArm", riggedPose.RightLowerArm, 1, .3);
-	  rigRotation("LeftUpperArm", riggedPose.LeftUpperArm, 1, .3);
-	  rigRotation("LeftLowerArm", riggedPose.LeftLowerArm, 1, .3);
-  
-	  rigRotation("LeftUpperLeg", riggedPose.LeftUpperLeg, 1, .3);
-	  rigRotation("LeftLowerLeg", riggedPose.LeftLowerLeg, 1, .3);
-	  rigRotation("RightUpperLeg", riggedPose.RightUpperLeg, 1, .3);
-	  rigRotation("RightLowerLeg", riggedPose.RightLowerLeg, 1, .3);
-	}
-
-	// Animate Hands
-	if (leftHandLandmarks) {
-	  riggedLeftHand = Kalidokit.Hand.solve(leftHandLandmarks, "Left");
-	  rigRotation("LeftHand", {
-		// Combine pose rotation Z and hand rotation X Y
-		z: riggedPose.LeftHand.z,
-		y: riggedLeftHand.LeftWrist.y,
-		x: riggedLeftHand.LeftWrist.x
-	  });
-	  rigRotation("LeftRingProximal", riggedLeftHand.LeftRingProximal);
-	  rigRotation("LeftRingIntermediate", riggedLeftHand.LeftRingIntermediate);
-	  rigRotation("LeftRingDistal", riggedLeftHand.LeftRingDistal);
-	  rigRotation("LeftIndexProximal", riggedLeftHand.LeftIndexProximal);
-	  rigRotation("LeftIndexIntermediate", riggedLeftHand.LeftIndexIntermediate);
-	  rigRotation("LeftIndexDistal", riggedLeftHand.LeftIndexDistal);
-	  rigRotation("LeftMiddleProximal", riggedLeftHand.LeftMiddleProximal);
-	  rigRotation("LeftMiddleIntermediate", riggedLeftHand.LeftMiddleIntermediate);
-	  rigRotation("LeftMiddleDistal", riggedLeftHand.LeftMiddleDistal);
-	  rigRotation("LeftThumbProximal", riggedLeftHand.LeftThumbProximal);
-	  rigRotation("LeftThumbIntermediate", riggedLeftHand.LeftThumbIntermediate);
-	  rigRotation("LeftThumbDistal", riggedLeftHand.LeftThumbDistal);
-	  rigRotation("LeftLittleProximal", riggedLeftHand.LeftLittleProximal);
-	  rigRotation("LeftLittleIntermediate", riggedLeftHand.LeftLittleIntermediate);
-	  rigRotation("LeftLittleDistal", riggedLeftHand.LeftLittleDistal);
-	}
-	if (rightHandLandmarks) {
-	  riggedRightHand = Kalidokit.Hand.solve(rightHandLandmarks, "Right");
-	  rigRotation("RightHand", {
-		// Combine Z axis from pose hand and X/Y axis from hand wrist rotation
-		z: riggedPose.RightHand.z,
-		y: riggedRightHand.RightWrist.y,
-		x: riggedRightHand.RightWrist.x
-	  });
-	  rigRotation("RightRingProximal", riggedRightHand.RightRingProximal);
-	  rigRotation("RightRingIntermediate", riggedRightHand.RightRingIntermediate);
-	  rigRotation("RightRingDistal", riggedRightHand.RightRingDistal);
-	  rigRotation("RightIndexProximal", riggedRightHand.RightIndexProximal);
-	  rigRotation("RightIndexIntermediate",riggedRightHand.RightIndexIntermediate);
-	  rigRotation("RightIndexDistal", riggedRightHand.RightIndexDistal);
-	  rigRotation("RightMiddleProximal", riggedRightHand.RightMiddleProximal);
-	  rigRotation("RightMiddleIntermediate", riggedRightHand.RightMiddleIntermediate);
-	  rigRotation("RightMiddleDistal", riggedRightHand.RightMiddleDistal);
-	  rigRotation("RightThumbProximal", riggedRightHand.RightThumbProximal);
-	  rigRotation("RightThumbIntermediate", riggedRightHand.RightThumbIntermediate);
-	  rigRotation("RightThumbDistal", riggedRightHand.RightThumbDistal);
-	  rigRotation("RightLittleProximal", riggedRightHand.RightLittleProximal);
-	  rigRotation("RightLittleIntermediate", riggedRightHand.RightLittleIntermediate);
-	  rigRotation("RightLittleDistal", riggedRightHand.RightLittleDistal);
-	}
-    // if (realResult) {
-    //     renderCtx.drawImage(realResult, 0, 0, renderCtx.width, renderCtx.height);
-        
-    //   }
   };
 
 /* SETUP MEDIAPIPE HOLISTIC INSTANCE */
@@ -562,19 +468,12 @@ const onResults = (results) => {
 	betaValue.innerHTML = beta.value * 0.1;
 	gammaValue.innerHTML = gamma.value * 0.1;
 
-	// fillFaceAll(guideCanvas, guideCtx, results, "blanck");  // 얼굴 triangle 다 채워주는거
-    // fillFaceOutline(guideCanvas, guideCtx, results, "purple");  // 얼굴 외곽선 안쪽 채워주는거 
 	let headInfo = getHeadInfo(results);
 	if (headInfo !== null){
-	// 	// console.log('head');
-	// 	// console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
-		orbitCamera.position.x = (headInfo.position.x - 0.5) * alpha.value * 0.1;
-		orbitCamera.position.y =(headInfo.position.y - 0.4) * beta.value * 0.1;
-		if (1 - headInfo.position.z * 7 >= 0.5){
-		orbitCamera.position.z =  0.5 - (headInfo.position.z * gamma.value * 0.1) ** 2;
-		}
-		orbitControls.target.set(headInfo.position.x -0.5 , headInfo.position.y -0.5, 0);
-		// console.log('head depth' ,  1 - headInfo.position.z * 7);
+
+		// console.log('head');
+		console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
+		setBackbonePosition(currentVrm, [headInfo.position.x - 0.5, -(headInfo.position.y - 0.5), 0,headInfo.faceSize]);
 	}
 	// console.log('camera')
 	// orbitCamera.position.x = headInfo.position.x - 0.5;
@@ -583,7 +482,7 @@ const onResults = (results) => {
 	// console.log(orbitCamera.position.x, orbitCamera.position.y, orbitCamera.position.z);
 	// Animate model
 	animateVRM(currentVrm, results);
-	setBackbonePosition(currentVrm, [0, 0, 0]);
+	// setBackbonePosition(currentVrm, [0, 0, 0]);
   }
 const material = new THREE.LineBasicMaterial({
 	color: 0x0000ff
@@ -596,7 +495,7 @@ const zLine = [];
 const origin = new THREE.Vector3( 0, 0, 0 );
 const giudeX = new THREE.Vector3( 10, 0, 0 );
 const guideY = new THREE.Vector3( 0, 10, 0 );
-const guideZ = new THREE.Vector3( 0, 0, 10);
+const guideZ = new THREE.Vector3( 0, 0, 30);
 
 xLine.push( origin );
 xLine.push( giudeX );
@@ -634,24 +533,25 @@ holistic.setOptions({
 // Pass holistic a callback function
 holistic.onResults(onResults);
 
-const setBackbonePosition = ( vrm, [x, y, z]) =>{
-    vrm.scene.children[0].position.set(x,y,z);  // "Root"
-    vrm.scene.children[0].children[0].position.set(x,y,z);  // "J_Bip_C_Hips"
-    vrm.scene.children[0].children[0].children[0].position.set(x,y,z);  // "J_Bip_C_Spine"
-    vrm.scene.children[0].children[0].children[0].children[0].position.set(x,y,z);  // "J_Bip_C_Chest"
-    vrm.scene.children[0].children[0].children[0].children[0].children[0].position.set(x,y,z);// "J_Bip_C_UpperChest"
-    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].position.set(x,y,z);  // "J_Bip_C_Neck"
-    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].position.set(x,y,z);  // "J_Bip_C_Head"
+const setBackbonePosition = ( vrm, [x, y, z, size]) =>{
+    vrm.scene.children[0].position.set(x, y, 0);  // "Root"
+    vrm.scene.children[0].children[0].position.set(0,0,0);  // "J_Bip_C_Hips"
+    vrm.scene.children[0].children[0].children[0].position.set(0,0,0);  // "J_Bip_C_Spine"
+    vrm.scene.children[0].children[0].children[0].children[0].position.set(0,0,0);  // "J_Bip_C_Chest"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].position.set(0,0,0);// "J_Bip_C_UpperChest"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].position.set(x,y,0);  // "J_Bip_C_Neck"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].position.set(0,-0.3,0); // "J_Bip_C_Head"
+	vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].scale.set(0.5* 10, 0.5 * 10, 0.5 * 10);
 }
 
 
 const drawResults = (results) => {
 	guideCanvas.width = videoElement.videoWidth;
 	guideCanvas.height = videoElement.videoHeight;
-let canvasCtx = guideCanvas.getContext('2d');
+	let canvasCtx = guideCanvas.getContext('2d');
 	canvasCtx.save();
 	canvasCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
-    canvasCtx.drawImage(results.image, 0, 0, guideCanvas.width, guideCanvas.height);
+	canvasCtx.drawImage(results.image, 0, 0, guideCanvas.width, guideCanvas.height);
 
 	// Use `Mediapipe` drawing functions
 	drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
@@ -673,22 +573,6 @@ let canvasCtx = guideCanvas.getContext('2d');
 			lineWidth: 2
 		});
 		}
-		drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {
-		color: "#eb1064",
-		lineWidth: 5
-		});
-		drawLandmarks(canvasCtx, results.leftHandLandmarks, {
-		color: "#00cff7",
-		lineWidth: 2
-		});
-		drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {
-		color: "#22c3e3",
-		lineWidth: 5
-		});
-		drawLandmarks(canvasCtx, results.rightHandLandmarks, {
-		color: "#ff0364",
-		lineWidth: 2
-		});
 	}
 
 
