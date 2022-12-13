@@ -1,81 +1,66 @@
+import { getHeadInfo, drawLine, fillFaceAll, fillFaceOutline } from "./canvas_utils.js";
+// import {FirstPersonControls} from "./FirstPersonControls.js"
+// import * as THREE from "../three/three.js";
+
 const socket = io();
 
-const myFace = document.getElementById("myFace");
 const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
 const camerasSelect = document.getElementById("cameras");
 const videoElement = document.getElementById("my-video");
 const guideCanvas = document.getElementById("my-guides");
-const live2d = document.getElementById("my-live2d")
+const live2d = document.getElementById("my-live2d");
+const ul = document.getElementById("videos");
+const alpha = document.getElementById("alpha");
+const beta = document.getElementById("beta");
+const gamma = document.getElementById("gamma");
+const alphaValue = document.getElementById("alphaValue");
+const betaValue = document.getElementById("betaValue");
+const gammaValue = document.getElementById("gammaValue");
+const remap = Kalidokit.Utils.remap;
+const clamp = Kalidokit.Utils.clamp;
+const lerp = Kalidokit.Vector.lerp;
+
+
+
+
+let currentVrm;
+let mute = false;
+
+const renderer = new THREE.WebGLRenderer({alpha:true});
+renderer.setSize(640, 480);
+renderer.setPixelRatio(window.devicePixelRatio);
+ul.append(renderer.domElement);
+renderer.domElement.id = 'threeDID';
+const gl = renderer.getContext('webgl');
+const guideCtx = guideCanvas.getContext('2d');
+
+
+// scene
+const scene = new THREE.Scene();
+scene.visible = false;
+
+const renderCanvas = document.getElementById('threeDID');
 let currentModel, facemesh;
-// const meshCanvas = document.getElementById("myMesh");
-// const myCtx = meshCanvas.getContext("2d");
 
-const modelUrl = "https://raw.githubusercontent.com/yeemachine/kalidokit/main/docs/models/hiyori/hiyori_pro_t10.model3.json";
-// let myStream;
-// let muted=false;
-// let cameraOff=false;
-// let roomName;
-// let myPeerConnection;
-// let myDataChannel;
-// let canvasStream;
 
-canvasStream = live2d.captureStream(30);
+let canvasStream = renderCanvas.captureStream(30);
 
 
 const call = document.getElementById("call")
 
-const myMesh = new FaceMesh({locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-  }});
-
-// myMesh.setOptions({
-//     maxNumFaces: 1,
-//     refineLandmarks: true,
-//     minDetectionConfidence: 0.5,
-//     minTrackingConfidence: 0.5
-//   });
-// myMesh['onResults'](myResults);
-
-call.hidden = true;
-myFace.hidden = true;
-videoElement.hidden = true;
-guideCanvas.hidden = true;
-
-
-// function myResults(results) {
-//     myCtx.save();
-//     myCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
-//     // myCtx.drawImage(
-//     //     results.image, 0, 0, meshCanvas.width, meshCanvas.height);
-//     if (results.multiFaceLandmarks) {
-//       for (const landmarks of results.multiFaceLandmarks) {
-//         drawConnectors(myCtx, landmarks, FACEMESH_TESSELATION,
-//                        {color: '#C0C0C070', lineWidth: 1});
-//         drawConnectors(myCtx, landmarks, FACEMESH_RIGHT_EYE, {color: '#FF3030'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_RIGHT_EYEBROW, {color: '#FF3030'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_RIGHT_IRIS, {color: '#FF3030'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LEFT_EYE, {color: '#30FF30'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LEFT_EYEBROW, {color: '#30FF30'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LEFT_IRIS, {color: '#30FF30'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_FACE_OVAL, {color: '#E0E0E0'});
-//         drawConnectors(myCtx, landmarks, FACEMESH_LIPS, {color: '#E0E0E0'});
-//       }
-//     }
-//     myCtx.restore();
-//   }
-
-
-// const camera = new Camera(myFace, {
-//     onFrame: async () => {
-//       await myMesh.send({image: myFace});
-//     },
-//     width: 1280,
-//     height: 1280
-//   });
+// const myMesh = new FaceMesh({locateFile: (file) => {
+//     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+//   }});
   
-// camera.start();
-
+async function initCall(){
+    welcome.hidden = true;
+    call.hidden = false;
+	scene.visible = true;
+    guideCanvas.hidden = false;
+    await getMedia();
+    makeConnection();
+}
 
 
 async function getCameras(){
@@ -111,7 +96,7 @@ async function getMedia(deviceId){
             deviceId? cameraConstraints : initialContrains
             );
 
-            myFace.srcObject = myStream;
+            videoElement.srcObject = myStream;
 
             if(!deviceId){
                 await getCameras();
@@ -180,14 +165,9 @@ camerasSelect.addEventListener("input", handleCameraChange);
 
 // Welcome Form (join room)
 const welcome = document.getElementById("welcome") 
-welcomeForm = welcome.querySelector("form")
+let welcomeForm = welcome.querySelector("form")
 
-async function initCall(){
-    welcome.hidden = true;
-    call.hidden = false;
-    await getMedia();
-    makeConnection();
-}
+
 
 
 async function handleWelcomeSubmit(event){
@@ -195,7 +175,7 @@ async function handleWelcomeSubmit(event){
     const input = welcomeForm.querySelector("input");
     await initCall();
     socket.emit("join_room", input.value);
-    roomName = input.value;
+    let roomName = input.value;
     input.value = "";
 }
 
@@ -241,7 +221,7 @@ socket.on("ice", (ice) => {
 });
 
 function makeConnection(){
-    myPeerConnection = new RTCPeerConnection();
+    let myPeerConnection = new RTCPeerConnection();
     myPeerConnection.addEventListener("icecandidate", handleIce);
     myPeerConnection.addEventListener("addstream", handleAddStream);
     myPeerConnection.addStream(canvasStream);
@@ -271,221 +251,348 @@ function handleAddStream(data) {
 
 
 /* Kalido app */
-const {
-	Application,
-	live2d: { Live2DModel }
-} = PIXI;
-
-const {
-	Face,
-	Vector: { lerp },
-	Utils: { clamp }
-} = Kalidokit;
 
 
 
-(async function main() {
+// camera
+const fo = 30;
+const zPosition = 1 / (Math.tan(15 * (Math.PI / 180)));
+const orbitCamera = new THREE.PerspectiveCamera(fo, 1, 0.1, 200);
+// const orbitCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 1, 1000)
+// orbitCamera.zoom = 0.1;
+// const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
+const fullW = window.innerWidth;
+const fullH= window.innerHeight;
 
-	const app = new PIXI.Application({
-		view: document.getElementById("my-live2d"),
-		autoStart: true,
-		backgroundAlpha: 0,
-		backgroundColor: 0xffffff,
-		resizeTo: window
+// const geometry = new THREE.BoxGeometry( 4, 4, 4 );
+// const mate = new THREE.MeshBasicMaterial( { color: 0x777777 } );
+// const cube = new THREE.Mesh( geometry, mate );
+// cube.position.set( 0, 0, 0 );
+// scene.add(cube);
+
+// orbitCamera.setViewOffset(fullW, fullH, fullW / 2, fullH / 2, fullW, fullH);
+orbitCamera.position.set(0, 0, zPosition);
+
+
+// controls
+const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
+// orbitControls.enabled = false;
+// orbitControls.screenSpacePanning = true;
+// orbitControls.target.set(0.0, 0.0, 0.0);
+orbitControls.update();
+
+
+// light
+const light = new THREE.DirectionalLight(0xffffff);
+light.position.set(1.0, 1.0, 1.0).normalize();
+scene.add(light);
+
+
+// Main Render Loop
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (currentVrm) {
+    // Update model to render physics
+    currentVrm.update(clock.getDelta());
+	currentVrm.scene.children[4].visible =false;
+	currentVrm.scene.children[1].visible =false;
+	
+  }
+  renderer.render(scene, orbitCamera);
+}
+animate();
+
+/* VRM CHARACTER SETUP */
+
+// Import Character VRM
+const loader = new THREE.GLTFLoader();
+loader.crossOrigin = "anonymous";
+// Import model from URL, add your own model here
+loader.load(
+  "https://cdn.glitch.com/29e07830-2317-4b15-a044-135e73c7f840%2FAshtra.vrm?v=1630342336981",
+
+  gltf => {
+    THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);
+
+    THREE.VRM.from(gltf).then(vrm => {
+      scene.add(vrm.scene);
+	  scene.add( lineX );
+	  scene.add( lineY );
+	  scene.add( lineZ );
+      currentVrm = vrm;
+      currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera
+    });
+  },
+
+  progress =>
+    console.log(
+      "Loading model...",
+      100.0 * (progress.loaded / progress.total),
+      "%"
+    ),
+
+  error => console.error(error)
+);
+
+// Animate Rotation Helper function
+const rigRotation = (
+	name,
+	rotation = { x: 0, y: 0, z: 0 },
+	dampener = 1,
+	lerpAmount = 0.3
+  ) => {
+	if (!currentVrm) {return}
+	const Part = currentVrm.humanoid.getBoneNode(
+	  THREE.VRMSchema.HumanoidBoneName[name]
+	);
+	if (!Part) {return}
+	
+	let euler = new THREE.Euler(
+	  rotation.x * dampener,
+	  rotation.y * dampener,
+	  rotation.z * dampener
+	);
+	let quaternion = new THREE.Quaternion().setFromEuler(euler);
+	Part.quaternion.slerp(quaternion, lerpAmount); // interpolate
+  };
+
+  // Animate Position Helper Function
+const rigPosition = (
+	name,
+	position = { x: 0, y: 0, z: 0 },
+	dampener = 10,
+	lerpAmount = 10
+  ) => {
+	if (!currentVrm) {return}
+	const Part = currentVrm.humanoid.getBoneNode(
+	  THREE.VRMSchema.HumanoidBoneName[name]
+	);
+	if (!Part) {return}
+	let vector = new THREE.Vector3(
+	  position.x * dampener,
+	  position.y * dampener,
+	  position.z * dampener
+	);
+	Part.position.lerp(vector, lerpAmount); // interpolate
+  };
+  
+  let oldLookTarget = new THREE.Euler()
+  const rigFace = (riggedFace) => {
+	  if(!currentVrm){return}
+	  rigRotation("Head", riggedFace.head, 0.7);
+  
+	  // Blendshapes and Preset Name Schema
+	  const Blendshape = currentVrm.blendShapeProxy;
+	  const PresetName = THREE.VRMSchema.BlendShapePresetName;
+	
+	  // Simple example without winking. Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.
+	  // for VRM, 1 is closed, 0 is open.
+	  riggedFace.eye.l = lerp(clamp(1 - riggedFace.eye.l, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
+	  riggedFace.eye.r = lerp(clamp(1 - riggedFace.eye.r, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
+	  riggedFace.eye = Kalidokit.Face.stabilizeBlink(riggedFace.eye,riggedFace.head.y)
+	  Blendshape.setValue(PresetName.Blink, riggedFace.eye.l);
+	  
+	  // Interpolate and set mouth blendshapes
+	  Blendshape.setValue(PresetName.I, lerp(riggedFace.mouth.shape.I,Blendshape.getValue(PresetName.I), .5));
+	  Blendshape.setValue(PresetName.A, lerp(riggedFace.mouth.shape.A,Blendshape.getValue(PresetName.A), .5));
+	  Blendshape.setValue(PresetName.E, lerp(riggedFace.mouth.shape.E,Blendshape.getValue(PresetName.E), .5));
+	  Blendshape.setValue(PresetName.O, lerp(riggedFace.mouth.shape.O,Blendshape.getValue(PresetName.O), .5));
+	  Blendshape.setValue(PresetName.U, lerp(riggedFace.mouth.shape.U,Blendshape.getValue(PresetName.U), .5));
+  
+	  //PUPILS
+	  //interpolate pupil and keep a copy of the value
+	  let lookTarget =
+		new THREE.Euler(
+		  lerp(oldLookTarget.x , riggedFace.pupil.y, .4),
+		  lerp(oldLookTarget.y, riggedFace.pupil.x, .4),
+		  0,
+		  "XYZ"
+		)
+	  oldLookTarget.copy(lookTarget)
+	  currentVrm.lookAt.applyer.lookAt(lookTarget);
+  }
+  
+ /* VRM Character Animator */
+const animateVRM = (vrm, results) => {
+	if (!vrm) {
+	  return;
+	}   
+	// Take the results from `Holistic` and animate character based on its Face, Pose, and Hand Keypoints.
+	let riggedPose, riggedLeftHand, riggedRightHand, riggedFace;
+
+  
+	const faceLandmarks = results.faceLandmarks;
+  
+	// Animate Face
+	if (faceLandmarks) {
+	 riggedFace = Kalidokit.Face.solve(faceLandmarks,{
+		runtime:"mediapipe",
+		video:videoElement
+	 });
+	 rigFace(riggedFace);
+
+
+	}
+  };
+
+/* SETUP MEDIAPIPE HOLISTIC INSTANCE */
+/* already setted */
+
+function drawCamHeadLine(cam, face){
+	const material = new THREE.LineBasicMaterial({
+		color: 0x0000ff
 	});
 
-	currentModel = await Live2DModel.from(modelUrl, { autoInteract: false });
-	currentModel.scale.set(0.4);
-	currentModel.interactive = true;
-	currentModel.anchor.set(0.5, 0.5);
-	currentModel.position.set(window.innerWidth * 0.5, window.innerHeight * 0.8);
+	const line = [];
+	const cameraPoint = new THREE.Vector3( cam.position.x, cam.position.y, cam.position.z );
+	const facePoint = new THREE.Vector3( face.head.x, face.head.y, face.head.z);
+	
+	line.push(cameraPoint);
+	line.push(facePoint);
 
-	currentModel.on("pointerdown", e => {
-		currentModel.offsetX = e.data.global.x - currentModel.position.x;
-		currentModel.offsetY = e.data.global.y - currentModel.position.y;
-		currentModel.dragging = true;
-	});
-	currentModel.on("pointerup", e => {
-		currentModel.dragging = false;
-	});
-	currentModel.on("pointermove", e => {
-		if (currentModel.dragging) {
-			currentModel.position.set(
-				e.data.global.x - currentModel.offsetX,
-				e.data.global.y - currentModel.offsetY
-			);
-		}
-	});
+	const geometry = new THREE.BufferGeometry().setFromPoints( line );
+	const lineThree = new THREE.Line( geometry, material );
 
-	document.querySelector("#my-live2d").addEventListener("wheel", e => {
-		e.preventDefault();
-		currentModel.scale.set(
-			clamp(currentModel.scale.x + event.deltaY * -0.001, -0.5, 10)
-		);
-	});
 
-	app.stage.addChild(currentModel);
+	return lineThree
+}
 
-	facemesh = new FaceMesh({
-		locateFile: file => {
-			return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-		}
-	});
-	facemesh.setOptions({
-		maxNumFaces: 1,
-		refineLandmarks: true,
-		minDetectionConfidence: 0.5,
-		minTrackingConfidence: 0.5
-	});
-	facemesh.onResults(onResults);
 
-	startCamera();
-})();
+const onResults = (results) => {
+	// Draw landmark guides
+	drawResults(results)
+	alphaValue.innerHTML = alpha.value * 0.1;
+	betaValue.innerHTML = beta.value * 0.1;
+	gammaValue.innerHTML = gamma.value * 0.1;
 
-const onResults = results => {
-	drawResults(results.multiFaceLandmarks[0]);
-	animateLive2DModel(results.multiFaceLandmarks[0]);
-};
+	let headInfo = getHeadInfo(results);
+	if (headInfo !== null){
 
-const drawResults = points => {
-	if (!guideCanvas || !videoElement || !points) return;
+		// console.log('head');
+		console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
+		setBackbonePosition(currentVrm, [headInfo.position.x - 0.5, -(headInfo.position.y - 0.5), 0,headInfo.faceSize]);
+	}
+	// console.log('camera')
+	// orbitCamera.position.x = headInfo.position.x - 0.5;
+	// orbitCamera.position.y = headInfo.position.y - 0.5;
+	// orbitCamera.position.z = headInfo.faceSize * 3;
+	// console.log(orbitCamera.position.x, orbitCamera.position.y, orbitCamera.position.z);
+	// Animate model
+	animateVRM(currentVrm, results);
+	// setBackbonePosition(currentVrm, [0, 0, 0]);
+  }
+const material = new THREE.LineBasicMaterial({
+	color: 0x0000ff
+});
+
+const xLine = [];
+const yLine = [];
+const zLine = [];
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const giudeX = new THREE.Vector3( 10, 0, 0 );
+const guideY = new THREE.Vector3( 0, 10, 0 );
+const guideZ = new THREE.Vector3( 0, 0, 30);
+
+xLine.push( origin );
+xLine.push( giudeX );
+
+yLine.push(origin);
+yLine.push(guideY);
+
+zLine.push(origin);
+zLine.push(guideZ);
+
+
+const geometryX = new THREE.BufferGeometry().setFromPoints( xLine );
+const geometryY = new THREE.BufferGeometry().setFromPoints( yLine );
+const geometryZ = new THREE.BufferGeometry().setFromPoints( zLine );
+const lineX = new THREE.Line( geometryX, material );
+const lineY = new THREE.Line( geometryY, material );
+const lineZ = new THREE.Line( geometryZ, material )
+
+
+  
+const holistic = new Holistic({
+	locateFile: file => {
+	return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
+	}
+});
+
+holistic.setOptions({
+	modelComplexity: 1,
+	smoothLandmarks: true,
+	minDetectionConfidence: 0.7,
+	minTrackingConfidence: 0.7,
+	refineFaceLandmarks: true,
+});
+
+// Pass holistic a callback function
+holistic.onResults(onResults);
+
+const setBackbonePosition = ( vrm, [x, y, z, size]) =>{
+    vrm.scene.children[0].position.set(x, y, 0);  // "Root"
+    vrm.scene.children[0].children[0].position.set(0,0,0);  // "J_Bip_C_Hips"
+    vrm.scene.children[0].children[0].children[0].position.set(0,0,0);  // "J_Bip_C_Spine"
+    vrm.scene.children[0].children[0].children[0].children[0].position.set(0,0,0);  // "J_Bip_C_Chest"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].position.set(0,0,0);// "J_Bip_C_UpperChest"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].position.set(x,y,0);  // "J_Bip_C_Neck"
+    vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].position.set(0,-0.3,0); // "J_Bip_C_Head"
+	vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].scale.set(0.5* 10, 0.5 * 10, 0.5 * 10);
+}
+
+
+const drawResults = (results) => {
 	guideCanvas.width = videoElement.videoWidth;
 	guideCanvas.height = videoElement.videoHeight;
-	let canvasCtx = guideCanvas.getContext("2d");
+	let canvasCtx = guideCanvas.getContext('2d');
 	canvasCtx.save();
 	canvasCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
-	drawConnectors(canvasCtx, points, FACEMESH_TESSELATION, {
+	canvasCtx.drawImage(results.image, 0, 0, guideCanvas.width, guideCanvas.height);
+
+	// Use `Mediapipe` drawing functions
+	drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+		color: "#00cff7",
+		lineWidth: 4
+		});
+		drawLandmarks(canvasCtx, results.poseLandmarks, {
+		color: "#ff0364",
+		lineWidth: 2
+		});
+		drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION, {
 		color: "#C0C0C070",
 		lineWidth: 1
-	});
-	if (points && points.length === 478) {
-		drawLandmarks(canvasCtx, [points[468], points[468 + 5]], {
+		});
+		if(results.faceLandmarks && results.faceLandmarks.length === 478){
+		//draw pupils
+		drawLandmarks(canvasCtx, [results.faceLandmarks[468],results.faceLandmarks[468+5]], {
 			color: "#ffe603",
 			lineWidth: 2
 		});
+		}
 	}
-};
 
-const animateLive2DModel = points => {
-	if(!currentModel || !points) return;
-	let riggedFace = Face.solve(points, {
-		runtime: "mediapipe",
-		video: videoElement
-	});
-	rigFace(riggedFace, 0.5);
-};
 
-const rigFace = (result, lerpAmount = 0.7) => {
-	if (!currentModel || !result) return;
-	const updateFn = currentModel.internalModel.motionManager.update;
-	const coreModel = currentModel.internalModel.coreModel;
+const camera = new Camera(videoElement, {
+	onFrame: async () => {
+	  await holistic.send({image: videoElement});
+	},
+	width: 640,
+	height: 480
+  });
 
-	currentModel.internalModel.motionManager.update = (...args) => {
-		currentModel.internalModel.eyeBlink = undefined;
+camera.start();
 
-		coreModel.setParameterValueById(
-			"ParamEyeBallX",
-			lerp(
-				result.pupil.x,
-				coreModel.getParameterValueById("ParamEyeBallX"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamEyeBallY",
-			lerp(
-				result.pupil.y,
-				coreModel.getParameterValueById("ParamEyeBallY"),
-				lerpAmount
-			)
-		);
+call.hidden = true;
+videoElement.hidden = true;
+guideCanvas.hidden = true;
+guideCanvas.style.webkitTransform = "scaleX(-1)";
+guideCanvas.style.position = 'absolute';
+renderCanvas.style.position = 'absolute';
 
-		coreModel.setParameterValueById(
-			"ParamAngleX",
-			lerp(
-				result.head.degrees.y,
-				coreModel.getParameterValueById("ParamAngleX"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamAngleY",
-			lerp(
-				result.head.degrees.x,
-				coreModel.getParameterValueById("ParamAngleY"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamAngleZ",
-			lerp(
-				result.head.degrees.z,
-				coreModel.getParameterValueById("ParamAngleZ"),
-				lerpAmount
-			)
-		);
+// camW = myFace.srcObject.getVideoTracks()[0].getSettings().width;
+// camH = myFace.srcObject.getVideoTracks()[0].getSettings().height;
 
-		const dampener = 0.3;
-		coreModel.setParameterValueById(
-			"ParamBodyAngleX",
-			lerp(
-				result.head.degrees.y * dampener,
-				coreModel.getParameterValueById("ParamBodyAngleX"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamBodyAngleY",
-			lerp(
-				result.head.degrees.x * dampener,
-				coreModel.getParameterValueById("ParamBodyAngleY"),
-				lerpAmount
-			)
-		);
-		coreModel.setParameterValueById(
-			"ParamBodyAngleZ",
-			lerp(
-				result.head.degrees.z * dampener,
-				coreModel.getParameterValueById("ParamBodyAngleZ"),
-				lerpAmount
-			)
-		);
-
-		let stabilizedEyes = Kalidokit.Face.stabilizeBlink(
-			{
-				l: lerp(
-					result.eye.l,
-					coreModel.getParameterValueById("ParamEyeLOpen"),
-					0.7
-				),
-				r: lerp(
-					result.eye.r,
-					coreModel.getParameterValueById("ParamEyeROpen"),
-					0.7
-				)
-			},
-			result.head.y
-		);
-
-		coreModel.setParameterValueById("ParamEyeLOpen", stabilizedEyes.l);
-		coreModel.setParameterValueById("ParamEyeROpen", stabilizedEyes.r);
-		coreModel.setParameterValueById(
-			"ParamMouthOpenY", 
-			lerp(result.mouth.y, coreModel.getParameterValueById("ParamMouthOpenY"), 0.3)
-		);
-		coreModel.setParameterValueById(
-			"ParamMouthForm",
-			0.3 + lerp(result.mouth.x, coreModel.getParameterValueById("ParamMouthForm"), 0.3)
-		);
-	};
-};
-
-const startCamera = ()=>{
-	const camera = new Camera(videoElement, {
-		onFrame: async ()=>{
-			await facemesh.send({ image: videoElement });
-		},
-		width: 640, height: 480
-	});
-	camera.start();
-};

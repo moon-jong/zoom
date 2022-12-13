@@ -6,17 +6,39 @@ html(lang="en")
 		meta(name="viewport", content="width=device-width, initial-scale=1.0")
 		title Noom
 		link(rel="stylesheet", href="https://unpkg.com/mvp.css")
-		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js", crossorigin="anonymous") 
-		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js", crossorigin="anonymous") 
-		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", crossorigin="anonymous") 
-		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js", crossorigin="anonymous") 
-		<script src="//cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-		<script src="//cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
-		<!-- PixiJS -->
-		<script src="//cdnjs.cloudflare.com/ajax/libs/pixi.js/5.1.3/pixi.min.js"></script>
-		<script src="//cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
-		<!-- Kalidokit -->
-		<script src="//cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js"></script>
+		//- <!--     Basic Three.js -->
+		script(src="https://unpkg.com/three@0.133.0/build/three.js")
+		//- <!--     GLTF Loader for Three.js -->
+		script(src="https://unpkg.com/three@0.133.0/examples/js/loaders/GLTFLoader.js")
+		//- <!--     Orbit Controls for Three.js -->
+		script(src="https://unpkg.com/three@0.133.0/examples/js/controls/OrbitControls.js")
+		//- <!--     VRM Loader for Three.js -->
+		script(src="https://unpkg.com/@pixiv/three-vrm@0.6.7/lib/three-vrm.js")
+		//- <!--     Mediapipe or Tensorflow.js -->
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/holistic.js", crossorigin="anonymous")
+
+		//- <!--     Mediapipe Drawing Tools -->
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", crossorigin="anonymous")
+		//- <!--     Mediapipe Camera Tools -->
+		script(src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js", crossorigin="anonymous")
+		//- <!--     Kalidokit Kinematic Solver -->
+		script(src="https://cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js")
+
+
+		//- <!--     Mediapipe Camera Tools -->
+		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js", crossorigin="anonymous") 
+		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js", crossorigin="anonymous") 
+		//- <!--     Mediapipe Drawing Tools -->
+		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", crossorigin="anonymous") 
+		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js", crossorigin="anonymous") 
+		//- <!-- Live 2D setup --> 
+		//- <script src="//cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+		//- <script src="//cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+		//- <!-- PixiJS -->
+		//- <script src="//cdnjs.cloudflare.com/ajax/libs/pixi.js/5.1.3/pixi.min.js"></script>
+		//- <script src="//cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
+		//- <!-- Kalidokit -->
+		//- <script src="//cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js"></script>
 	body 
 		header
 			h1 Moonjong's Noom
@@ -24,20 +46,34 @@ html(lang="en")
 			div#welcome
 				form
 					input(placeholdeer="room name", required, type="text")
-					button Enter Room  
+					button Enter Room 
 			div#call
+
+				input#alpha(type="range", min= "0", max="100", value="8")
+				span#alphaValue Value:
+				input#beta(type="range", min= "0", max="100", value="4")
+				span#betaValue Value:
+				input#gamma(type="range", min= "0", max="100", value="6.3")
+				span#gammaValue Value:
+				input#fov(type="range", min= "30", max="100", value="6.3")
+				span#fovValue Value:
 				div#myStream
 					p 
-						video#myFace(autoplay, playsinline, width="400", heigth="400")
-						//- canvas#myMesh(width="600", heigth="600")
+					ul#videos
 						video#my-video(autoplay, playsinline, width="400", heigth="400")
 						canvas#my-guides(width="600", heigth="600")
-						canvas#my-live2d(width="600", heigth="600")
 					button#mute mute
 					button#camera camera
+					
+					p 
 					select#cameras
 						option(value="device") Face camera
 					p 
 						video#peerFace(autoplay, playsinline width="600", heigth="600")
+				div 
 		script(src="/socket.io/socket.io.js")
-		script(src="/public/js/app.js")
+		script(type="module", src="/public/js/app.js")
+		script(type="module", src="/public/js/canvas_utils.js")
+		script(type="module", src="/public/js/vector.js")
+		script(type="module", src="/public/js/constants.js")
+		script(type="module", src="/public/js/FirstPersonControls.js")
