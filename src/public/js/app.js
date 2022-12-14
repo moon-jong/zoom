@@ -49,9 +49,6 @@ let canvasStream = renderCanvas.captureStream(30);
 
 const call = document.getElementById("call")
 
-// const myMesh = new FaceMesh({locateFile: (file) => {
-//     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-//   }});
   
 async function initCall(){
     welcome.hidden = true;
@@ -257,12 +254,10 @@ function handleAddStream(data) {
 // camera
 const fo = 30;
 const zPosition = 1 / (Math.tan(15 * (Math.PI / 180)));
-const orbitCamera = new THREE.PerspectiveCamera(fo, 1, 0.1, 200);
+const orbitCamera = new THREE.PerspectiveCamera(fo, 4/3, 0.1, 200);
 // const orbitCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 1, 1000)
 // orbitCamera.zoom = 0.1;
 // const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
-const fullW = window.innerWidth;
-const fullH= window.innerHeight;
 
 // const geometry = new THREE.BoxGeometry( 4, 4, 4 );
 // const mate = new THREE.MeshBasicMaterial( { color: 0x777777 } );
@@ -275,11 +270,11 @@ orbitCamera.position.set(0, 0, zPosition);
 
 
 // controls
-const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
+// const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
 // orbitControls.enabled = false;
 // orbitControls.screenSpacePanning = true;
 // orbitControls.target.set(0.0, 0.0, 0.0);
-orbitControls.update();
+// orbitControls.update();
 
 
 // light
@@ -297,8 +292,15 @@ function animate() {
   if (currentVrm) {
     // Update model to render physics
     currentVrm.update(clock.getDelta());
+	/* asis
 	currentVrm.scene.children[4].visible =false;
-	currentVrm.scene.children[1].visible =false;
+	currentVrm.scene.children[1].visible =true;
+	for (let i = 60 ; i < 99 ; i++){
+        currentVrm.scene.children[1].children[0].children[i].visible = false;
+    }
+	*/
+	removeBodyPony(currentVrm)
+
 	
   }
   renderer.render(scene, orbitCamera);
@@ -312,7 +314,8 @@ const loader = new THREE.GLTFLoader();
 loader.crossOrigin = "anonymous";
 // Import model from URL, add your own model here
 loader.load(
-  "https://cdn.glitch.com/29e07830-2317-4b15-a044-135e73c7f840%2FAshtra.vrm?v=1630342336981",
+//   "https://cdn.glitch.com/29e07830-2317-4b15-a044-135e73c7f840%2FAshtra.vrm?v=1630342336981",
+'/public/vrm/Saitama.vrm',
 
   gltf => {
     THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);
@@ -359,25 +362,6 @@ const rigRotation = (
 	Part.quaternion.slerp(quaternion, lerpAmount); // interpolate
   };
 
-  // Animate Position Helper Function
-const rigPosition = (
-	name,
-	position = { x: 0, y: 0, z: 0 },
-	dampener = 10,
-	lerpAmount = 10
-  ) => {
-	if (!currentVrm) {return}
-	const Part = currentVrm.humanoid.getBoneNode(
-	  THREE.VRMSchema.HumanoidBoneName[name]
-	);
-	if (!Part) {return}
-	let vector = new THREE.Vector3(
-	  position.x * dampener,
-	  position.y * dampener,
-	  position.z * dampener
-	);
-	Part.position.lerp(vector, lerpAmount); // interpolate
-  };
   
   let oldLookTarget = new THREE.Euler()
   const rigFace = (riggedFace) => {
@@ -421,10 +405,10 @@ const animateVRM = (vrm, results) => {
 	  return;
 	}   
 	// Take the results from `Holistic` and animate character based on its Face, Pose, and Hand Keypoints.
-	let riggedPose, riggedLeftHand, riggedRightHand, riggedFace;
+	let riggedFace;
 
   
-	const faceLandmarks = results.faceLandmarks;
+	const faceLandmarks = results.multiFaceLandmarks[0];
   
 	// Animate Face
 	if (faceLandmarks) {
@@ -471,18 +455,12 @@ const onResults = (results) => {
 	let headInfo = getHeadInfo(results);
 	if (headInfo !== null){
 
-		// console.log('head');
 		console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
-		setBackbonePosition(currentVrm, [headInfo.position.x - 0.5, -(headInfo.position.y - 0.5), 0,headInfo.faceSize]);
+		setBonePony(currentVrm, [(headInfo.position.x - 0.5) * 4/3, -(headInfo.position.y - 0.5), 0, headInfo.faceSize]);
+		// setBackbonePosition(currentVrm, [headInfo.position.x - 0.5, -(headInfo.position.y - 0.5), 0, headInfo.faceSize]);
 	}
-	// console.log('camera')
-	// orbitCamera.position.x = headInfo.position.x - 0.5;
-	// orbitCamera.position.y = headInfo.position.y - 0.5;
-	// orbitCamera.position.z = headInfo.faceSize * 3;
-	// console.log(orbitCamera.position.x, orbitCamera.position.y, orbitCamera.position.z);
 	// Animate model
 	animateVRM(currentVrm, results);
-	// setBackbonePosition(currentVrm, [0, 0, 0]);
   }
 const material = new THREE.LineBasicMaterial({
 	color: 0x0000ff
@@ -515,23 +493,57 @@ const lineY = new THREE.Line( geometryY, material );
 const lineZ = new THREE.Line( geometryZ, material )
 
 
+const holistic = new FaceMesh({locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+  }});
   
-const holistic = new Holistic({
-	locateFile: file => {
-	return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
-	}
-});
+// const holistic = new Holistic({
+// 	locateFile: file => {
+// 	return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
+// 	}
+// });
+
+// holistic.setOptions({
+// 	modelComplexity: 1,
+// 	smoothLandmarks: true,
+// 	minDetectionConfidence: 0.7,
+// 	minTrackingConfidence: 0.7,
+// 	refineFaceLandmarks: true,
+// });
 
 holistic.setOptions({
-	modelComplexity: 1,
-	smoothLandmarks: true,
-	minDetectionConfidence: 0.7,
-	minTrackingConfidence: 0.7,
-	refineFaceLandmarks: true,
-});
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
 
 // Pass holistic a callback function
 holistic.onResults(onResults);
+/* set all bones from root to neck position zero */
+
+const removeBodyPony = ( vrm ) => {
+    if ( vrm.scene.children[6].name = "wedel" ){
+        vrm.scene.children[6].visible = false;  
+        vrm.scene.children[5].children[2].visible = false;
+    }
+    else {
+		vrm.scene.children[5].visible = false;  
+		vrm.scene.children[6].children[2].visible = false;
+	}
+    vrm.scene.children[4].visible = false;  // "Kape+Tail"
+    vrm.scene.children[3].visible = false;  // "Kape"
+}
+
+const setBonePony = ( vrm, [x, y, z, size]) =>{
+    vrm.scene.children[0].children[0].position.set(x,y-0.05,0);  // "RootBone"
+    vrm.scene.children[0].children[0].children[0].position.set(0,0,0);  // "HipsBone"
+    vrm.scene.children[0].children[0].children[0].children[4].position.set(0,0,0);  // "SpineBone"
+    vrm.scene.children[0].children[0].children[0].children[4].children[0].position.set(0,0,0);  // "ChestBone"
+    vrm.scene.children[0].children[0].children[0].children[4].children[0].children[1].position.set(x,y,0);// "NeckBone"
+    vrm.scene.children[0].children[0].children[0].children[4].children[0].children[1].children[0].position.set(0,-0.3,0);  // "HeadBone"
+	vrm.scene.children[0].children[0].children[0].children[4].children[0].children[1].children[0].scale.set(size * 10, size * 10, size * 10);
+}
 
 const setBackbonePosition = ( vrm, [x, y, z, size]) =>{
     vrm.scene.children[0].position.set(x, y, 0);  // "Root"
@@ -541,7 +553,7 @@ const setBackbonePosition = ( vrm, [x, y, z, size]) =>{
     vrm.scene.children[0].children[0].children[0].children[0].children[0].position.set(0,0,0);// "J_Bip_C_UpperChest"
     vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].position.set(x,y,0);  // "J_Bip_C_Neck"
     vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].position.set(0,-0.3,0); // "J_Bip_C_Head"
-	vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].scale.set(0.5* 10, 0.5 * 10, 0.5 * 10);
+	vrm.scene.children[0].children[0].children[0].children[0].children[0].children[5].children[0].scale.set(size * 30, size * 30, size * 30);
 }
 
 
@@ -554,25 +566,17 @@ const drawResults = (results) => {
 	canvasCtx.drawImage(results.image, 0, 0, guideCanvas.width, guideCanvas.height);
 
 	// Use `Mediapipe` drawing functions
-	drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
-		color: "#00cff7",
-		lineWidth: 4
+	drawConnectors(canvasCtx, results.multiFaceLandmarks[0], FACEMESH_TESSELATION, {
+	color: "#C0C0C070",
+	lineWidth: 1
 		});
-		drawLandmarks(canvasCtx, results.poseLandmarks, {
-		color: "#ff0364",
+	if(results.multiFaceLandmarks[0] && results.multiFaceLandmarks[0].length === 478){
+	//draw pupils
+	drawLandmarks(canvasCtx, [results.multiFaceLandmarks[0][468],results.multiFaceLandmarks[0][468+5]], {
+		color: "#ffe603",
 		lineWidth: 2
 		});
-		drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION, {
-		color: "#C0C0C070",
-		lineWidth: 1
-		});
-		if(results.faceLandmarks && results.faceLandmarks.length === 478){
-		//draw pupils
-		drawLandmarks(canvasCtx, [results.faceLandmarks[468],results.faceLandmarks[468+5]], {
-			color: "#ffe603",
-			lineWidth: 2
-		});
-		}
+	}
 	}
 
 

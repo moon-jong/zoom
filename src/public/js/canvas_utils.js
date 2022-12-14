@@ -18,7 +18,7 @@ function drawLine(from, to){
 
 function getHeadInfo(results){
 
-        const landmarks = results?.faceLandmarks; 
+        const landmarks = results?.multiFaceLandmarks[0]; 
         if (landmarks === undefined){
             return null
         }   // landmark
