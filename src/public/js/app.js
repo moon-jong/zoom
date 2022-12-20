@@ -374,17 +374,23 @@ const rigRotation = (
 	
 	  // Simple example without winking. Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.
 	  // for VRM, 1 is closed, 0 is open.
-	  riggedFace.eye.l = lerp(clamp(1 - riggedFace.eye.l, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
-	  riggedFace.eye.r = lerp(clamp(1 - riggedFace.eye.r, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
-	  riggedFace.eye = Kalidokit.Face.stabilizeBlink(riggedFace.eye,riggedFace.head.y)
-	  Blendshape.setValue(PresetName.Blink, riggedFace.eye.l);
+	//   riggedFace.eye.l = lerp(clamp(1 - riggedFace.eye.l, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
+	//   riggedFace.eye.r = lerp(clamp(1 - riggedFace.eye.r, 0, 1),Blendshape.getValue(PresetName.Blink), .5)
+	//   riggedFace.eye = Kalidokit.Face.stabilizeBlink(riggedFace.eye,riggedFace.head.y)
+	  riggedFace.eye = Kalidokit.Face.stabilizeBlink({
+		l: lerp(clamp(1 - riggedFace.eye.l, 0, 1), Blendshape.getValue(PresetName.BlinkL), .2), 
+		r: lerp(clamp(1 - riggedFace.eye.r, 0, 1), Blendshape.getValue(PresetName.BlinkR), .2)
+	},riggedFace.head.y)
+	  
+	  Blendshape.setValue(PresetName.BlinkL, riggedFace.eye.l);
+	  Blendshape.setValue(PresetName.BlinkR, riggedFace.eye.r);
 	  
 	  // Interpolate and set mouth blendshapes
-	  Blendshape.setValue(PresetName.I, lerp(riggedFace.mouth.shape.I,Blendshape.getValue(PresetName.I), .5));
-	  Blendshape.setValue(PresetName.A, lerp(riggedFace.mouth.shape.A,Blendshape.getValue(PresetName.A), .5));
-	  Blendshape.setValue(PresetName.E, lerp(riggedFace.mouth.shape.E,Blendshape.getValue(PresetName.E), .5));
-	  Blendshape.setValue(PresetName.O, lerp(riggedFace.mouth.shape.O,Blendshape.getValue(PresetName.O), .5));
-	  Blendshape.setValue(PresetName.U, lerp(riggedFace.mouth.shape.U,Blendshape.getValue(PresetName.U), .5));
+	  Blendshape.setValue(PresetName.I, lerp(riggedFace.mouth.shape.I,Blendshape.getValue(PresetName.I), .25));
+	  Blendshape.setValue(PresetName.A, lerp(riggedFace.mouth.shape.A,Blendshape.getValue(PresetName.A), .25));
+	  Blendshape.setValue(PresetName.E, lerp(riggedFace.mouth.shape.E,Blendshape.getValue(PresetName.E), .25));
+	  Blendshape.setValue(PresetName.O, lerp(riggedFace.mouth.shape.O,Blendshape.getValue(PresetName.O), .25));
+	  Blendshape.setValue(PresetName.U, lerp(riggedFace.mouth.shape.U,Blendshape.getValue(PresetName.U), .25));
   
 	  //PUPILS
 	  //interpolate pupil and keep a copy of the value
@@ -395,7 +401,7 @@ const rigRotation = (
 		  0,
 		  "XYZ"
 		)
-	  oldLookTarget.copy(lookTarget)
+	  oldLookTarget.copy(lookTarget);
 	  currentVrm.lookAt.applyer.lookAt(lookTarget);
   }
   
@@ -424,26 +430,6 @@ const animateVRM = (vrm, results) => {
 
 /* SETUP MEDIAPIPE HOLISTIC INSTANCE */
 /* already setted */
-
-function drawCamHeadLine(cam, face){
-	const material = new THREE.LineBasicMaterial({
-		color: 0x0000ff
-	});
-
-	const line = [];
-	const cameraPoint = new THREE.Vector3( cam.position.x, cam.position.y, cam.position.z );
-	const facePoint = new THREE.Vector3( face.head.x, face.head.y, face.head.z);
-	
-	line.push(cameraPoint);
-	line.push(facePoint);
-
-	const geometry = new THREE.BufferGeometry().setFromPoints( line );
-	const lineThree = new THREE.Line( geometry, material );
-
-
-	return lineThree
-}
-
 
 const onResults = (results) => {
 	// Draw landmark guides
