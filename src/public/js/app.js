@@ -1,6 +1,7 @@
 import { getHeadInfo, drawLine, fillFaceAll, fillFaceOutline } from "./canvas_utils.js";
 // import {FirstPersonControls} from "./FirstPersonControls.js"
 // import * as THREE from "../three/three.js";
+import { setCameraLight } from "../three/renderModule.js";
 
 const socket = io();
 
@@ -246,11 +247,8 @@ function handleAddStream(data) {
     
 }
 
-
+/*------------------------------------------------------------*/
 /* Kalido app */
-
-
-
 // camera
 const fo = 30;
 const zPosition = 1 / (Math.tan(15 * (Math.PI / 180)));
@@ -259,22 +257,7 @@ const orbitCamera = new THREE.PerspectiveCamera(fo, 4/3, 0.1, 200);
 // orbitCamera.zoom = 0.1;
 // const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
 
-// const geometry = new THREE.BoxGeometry( 4, 4, 4 );
-// const mate = new THREE.MeshBasicMaterial( { color: 0x777777 } );
-// const cube = new THREE.Mesh( geometry, mate );
-// cube.position.set( 0, 0, 0 );
-// scene.add(cube);
-
-// orbitCamera.setViewOffset(fullW, fullH, fullW / 2, fullH / 2, fullW, fullH);
-orbitCamera.position.set(0, 0, zPosition);
-
-
-// controls
-// const orbitControls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
-// orbitControls.enabled = false;
-// orbitControls.screenSpacePanning = true;
-// orbitControls.target.set(0.0, 0.0, 0.0);
-// orbitControls.update();
+// orbitCamera.position.set(0, 0, zPosition);
 
 
 // light
@@ -305,6 +288,7 @@ function animate() {
   }
   renderer.render(scene, orbitCamera);
 }
+
 animate();
 
 /* VRM CHARACTER SETUP */
@@ -322,9 +306,6 @@ loader.load(
 
     THREE.VRM.from(gltf).then(vrm => {
       scene.add(vrm.scene);
-	  scene.add( lineX );
-	  scene.add( lineY );
-	  scene.add( lineZ );
       currentVrm = vrm;
       currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera
     });
@@ -337,7 +318,7 @@ loader.load(
       "%"
     ),
 
-  error => console.error(error)
+  error => console.error(error),
 );
 
 // Animate Rotation Helper function
@@ -452,50 +433,11 @@ const material = new THREE.LineBasicMaterial({
 	color: 0x0000ff
 });
 
-const xLine = [];
-const yLine = [];
-const zLine = [];
-
-const origin = new THREE.Vector3( 0, 0, 0 );
-const giudeX = new THREE.Vector3( 10, 0, 0 );
-const guideY = new THREE.Vector3( 0, 10, 0 );
-const guideZ = new THREE.Vector3( 0, 0, 30);
-
-xLine.push( origin );
-xLine.push( giudeX );
-
-yLine.push(origin);
-yLine.push(guideY);
-
-zLine.push(origin);
-zLine.push(guideZ);
-
-
-const geometryX = new THREE.BufferGeometry().setFromPoints( xLine );
-const geometryY = new THREE.BufferGeometry().setFromPoints( yLine );
-const geometryZ = new THREE.BufferGeometry().setFromPoints( zLine );
-const lineX = new THREE.Line( geometryX, material );
-const lineY = new THREE.Line( geometryY, material );
-const lineZ = new THREE.Line( geometryZ, material )
-
 
 const holistic = new FaceMesh({locateFile: (file) => {
     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
   }});
-  
-// const holistic = new Holistic({
-// 	locateFile: file => {
-// 	return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
-// 	}
-// });
 
-// holistic.setOptions({
-// 	modelComplexity: 1,
-// 	smoothLandmarks: true,
-// 	minDetectionConfidence: 0.7,
-// 	minTrackingConfidence: 0.7,
-// 	refineFaceLandmarks: true,
-// });
 
 holistic.setOptions({
     maxNumFaces: 1,
