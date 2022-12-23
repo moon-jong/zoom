@@ -250,20 +250,10 @@ function handleAddStream(data) {
 /*------------------------------------------------------------*/
 /* Kalido app */
 // camera
-const fo = 30;
-const zPosition = 1 / (Math.tan(15 * (Math.PI / 180)));
-const orbitCamera = new THREE.PerspectiveCamera(fo, 4/3, 0.1, 200);
-// const orbitCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 1, 1000)
-// orbitCamera.zoom = 0.1;
-// const firstPerson = new FirstPersonControls(orbitCamera, renderer.domElement)
-
-// orbitCamera.position.set(0, 0, zPosition);
-
-
-// light
-const light = new THREE.DirectionalLight(0xffffff);
-light.position.set(1.0, 1.0, 1.0).normalize();
-scene.add(light);
+const orbitCamera = setCameraLight(30, scene);
+// const fo = 30;
+// const zPosition = 1 / (Math.tan(15 * (Math.PI / 180)));
+// const orbitCamera = new THREE.PerspectiveCamera(fo, 4/3, 0.1, 200);
 
 
 // Main Render Loop
