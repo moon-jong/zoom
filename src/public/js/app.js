@@ -308,37 +308,6 @@ loader.load(
   error => console.error(error),
 );
 
-
-// Animate Rotation Helper function
-  
-let oldLookTarget = new THREE.Euler();
-
- /* VRM Character Animator */
-const animateVRM = (vrm, results) => {
-	if (!vrm) {
-	  return;
-	}   
-	// Take the results from `Holistic` and animate character based on its Face, Pose, and Hand Keypoints.
-	let riggedFace;
-
-  
-	const faceLandmarks = results.multiFaceLandmarks[0];
-  
-	// Animate Face
-	if (faceLandmarks) {
-	 riggedFace = Kalidokit.Face.solve(faceLandmarks,{
-		runtime:"mediapipe",
-		video:videoElement
-	 });
-	//  rigFace(riggedFace, currentVrm, oldLookTarget);
-  oldLookTarget = rigFace(riggedFace, currentVrm, oldLookTarget);
-  console.log(oldLookTarget);
-  	}
-  }
-
-/* SETUP MEDIAPIPE HOLISTIC INSTANCE */
-/* already setted */
-
 const onResults = (results) => {
 	// Draw landmark guides
 	drawResults(results, guideCanvas, videoElement);
