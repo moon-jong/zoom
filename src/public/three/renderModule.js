@@ -152,6 +152,58 @@ function rigFace(riggedFace, vrm, oldLookTarget){
     return oldLookTarget
 }
 
+function animateVRM(vrm, results, videoElement, oldLookTarget){
+  if (!vrm){
+    return
+  }
+  let riggedFace;
+
+  const faceLandmarks = results.multiFaceLandmarks[0];
+  // Animate Face
+	if (faceLandmarks) {
+    riggedFace = Kalidokit.Face.solve(faceLandmarks,{
+     runtime:"mediapipe",
+     video:videoElement
+    });
+   //  rigFace(riggedFace, currentVrm, oldLookTarget);
+   oldLookTarget = rigFace(riggedFace, vrm, oldLookTarget);
+   console.log(oldLookTarget);
+     }
+    return oldLookTarget
+}
+
+function processResults(results, vrm, guideCanvas, videoElement, oldLookTarget){
+  drawResults(results, guideCanvas, videoElement);
+
+	let headInfo = getHeadInfo(results);
+	if (headInfo !== null){
+
+    // console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
+		setBonePony(vrm, [(headInfo.position.x - 0.5) * 4/3, -(headInfo.position.y - 0.5), 0, headInfo.faceSize]);
+		// setBackbonePosition(currentVrm, [headInfo.position.x - 0.5, -(headInfo.position.y - 0.5), 0, headInfo.faceSize]);
+	}
+	// Animate model
+  // console.log(currentVrm);
+	animateVRM(vrm, results, videoElement, oldLookTarget);
+}
+
+
+function setHolistic(){
+  const holistic = new FaceMesh({locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+  }});
+
+  holistic.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+
+  return holistic
+}
+
+
 export{
     setCameraLight, 
     animate, 
