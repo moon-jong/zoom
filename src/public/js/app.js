@@ -297,22 +297,9 @@ const onResults = (results) => {
   processResults(results, currentVrm, guideCanvas, videoElement, oldLookTarget);
 
 }
-	// Animate model
-  // console.log(currentVrm);
-	animateVRM(currentVrm, results);
-  }
-const material = new THREE.LineBasicMaterial({
-	color: 0x0000ff
-});
 
 
-const holistic = new FaceMesh({locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-  }});
-
-
-
-// Pass holistic a callback function
+const holistic = setHolistic();
 holistic.onResults(onResults);
 
 
