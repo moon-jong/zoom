@@ -25,21 +25,6 @@ html(lang="en")
 		//- <!--     Kalidokit Kinematic Solver -->
 		script(src="https://cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js")
 
-
-		//- <!--     Mediapipe Camera Tools -->
-		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js", crossorigin="anonymous") 
-		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js", crossorigin="anonymous") 
-		//- <!--     Mediapipe Drawing Tools -->
-		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js", crossorigin="anonymous") 
-		//- script(src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js", crossorigin="anonymous") 
-		//- <!-- Live 2D setup --> 
-		//- <script src="//cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-		//- <script src="//cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
-		//- <!-- PixiJS -->
-		//- <script src="//cdnjs.cloudflare.com/ajax/libs/pixi.js/5.1.3/pixi.min.js"></script>
-		//- <script src="//cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
-		//- <!-- Kalidokit -->
-		//- <script src="//cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js"></script>
 	body 
 		header
 			h1 Moonjong's Noom
@@ -49,15 +34,6 @@ html(lang="en")
 					input(placeholdeer="room name", required, type="text")
 					button Enter Room 
 			div#call
-
-				input#alpha(type="range", min= "0", max="100", value="8")
-				span#alphaValue Value:
-				input#beta(type="range", min= "0", max="100", value="4")
-				span#betaValue Value:
-				input#gamma(type="range", min= "0", max="100", value="6.3")
-				span#gammaValue Value:
-				input#fov(type="range", min= "30", max="100", value="6.3")
-				span#fovValue Value:
 				div#myStream
 					p 
 					ul#videos
@@ -72,6 +48,7 @@ html(lang="en")
 					p 
 						video#peerFace(autoplay, playsinline width="600", heigth="600")
 				div 
+
 		script(src="/socket.io/socket.io.js")
 		script(type="module", src="/public/js/app.js")
 		script(type="module", src="/public/js/canvas_utils.js")
