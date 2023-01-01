@@ -46,12 +46,13 @@ let canvasStream = renderCanvas.captureStream(30);
 
 
 const call = document.getElementById("call")
+initCanvas(call, videoElement, guideCanvas, renderCanvas)
 
   
 async function initCall(){
     welcome.hidden = true;
     call.hidden = false;
-	scene.visible = true;
+	  scene.visible = true;
     guideCanvas.hidden = false;
     await getMedia();
     makeConnection();
