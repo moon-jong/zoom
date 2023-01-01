@@ -309,19 +309,10 @@ loader.load(
 );
 
 const onResults = (results) => {
-	// Draw landmark guides
-	drawResults(results, guideCanvas, videoElement);
-	alphaValue.innerHTML = alpha.value * 0.1;
-	betaValue.innerHTML = beta.value * 0.1;
-	gammaValue.innerHTML = gamma.value * 0.1;
 
-	let headInfo = getHeadInfo(results);
-	if (headInfo !== null){
+  processResults(results, currentVrm, guideCanvas, videoElement, oldLookTarget);
 
-		// console.log(headInfo.position.x, headInfo.position.y, headInfo.faceSize);
-		setBonePony(currentVrm, [(headInfo.position.x - 0.5) * 4/3, -(headInfo.position.y - 0.5), 0, headInfo.faceSize]);
-		// setBackbonePosition(currentVrm, [headInfo.position.x - 0.5, -(headInfo.position.y - 0.5), 0, headInfo.faceSize]);
-	}
+}
 	// Animate model
   // console.log(currentVrm);
 	animateVRM(currentVrm, results);
