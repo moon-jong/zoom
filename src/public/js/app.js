@@ -347,10 +347,3 @@ const camera = new Camera(videoElement, {
   });
 
 camera.start();
-
-call.hidden = true;
-videoElement.hidden = true;
-guideCanvas.hidden = true;
-guideCanvas.style.webkitTransform = "scaleX(-1)";
-guideCanvas.style.position = 'absolute';
-renderCanvas.style.position = 'absolute';
