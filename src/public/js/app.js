@@ -16,6 +16,8 @@ const ul = document.getElementById("videos");
 
 let currentVrm;
 let mute = false;
+let oldLookTarget = new THREE.Euler();
+
 
 const renderer = new THREE.WebGLRenderer({alpha:true});
 renderer.setSize(640, 480);
