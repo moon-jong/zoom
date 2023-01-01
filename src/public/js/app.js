@@ -251,7 +251,6 @@ function handleAddStream(data) {
 // camera
 const orbitCamera = setCameraLight(30, scene);
 
-
 // Main Render Loop
 const clock = new THREE.Clock();
 
@@ -261,26 +260,13 @@ function animate() {
   if (currentVrm) {
     // Update model to render physics
     currentVrm.update(clock.getDelta());
-	/* asis
-	currentVrm.scene.children[4].visible =false;
-	currentVrm.scene.children[1].visible =true;
-	for (let i = 60 ; i < 99 ; i++){
-        currentVrm.scene.children[1].children[0].children[i].visible = false;
-    }
-	*/
 	  removeBodyPony(currentVrm)
 
-	
   }
   renderer.render(scene, orbitCamera);
 }
 animate();
-// animate(currentVrm, clock, renderer, scene, orbitCamera);
 
-// console.log(currentVrm);
-/* VRM CHARACTER SETUP */
-
-// Import Character VRM
 const loader = new THREE.GLTFLoader();
 loader.crossOrigin = "anonymous";
 // Import model from URL, add your own model here
@@ -297,14 +283,12 @@ loader.load(
       currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera
     });
   },
-
   progress =>
     console.log(
       "Loading model...",
       100.0 * (progress.loaded / progress.total),
       "%"
     ),
-
   error => console.error(error),
 );
 
@@ -327,12 +311,6 @@ const holistic = new FaceMesh({locateFile: (file) => {
   }});
 
 
-holistic.setOptions({
-    maxNumFaces: 1,
-    refineLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
-  });
 
 // Pass holistic a callback function
 holistic.onResults(onResults);
