@@ -205,11 +205,15 @@ function setHolistic(){
 
 
 export{
-    setCameraLight, 
-    animate, 
-    rigRotation, 
-    setBonePony, 
+    setCameraLight,
+    animate,
+    rigRotation,
+    setBonePony,
     removeBodyPony,
     drawResults,
-    rigFace
+    rigFace,
+    animateVRM,
+    processResults,
+    setHolistic,
+    modelPath
 }
