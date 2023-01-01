@@ -1,5 +1,19 @@
 import Vector from "./vector.js";
 
+function initCanvas(
+    call, 
+    videoElement,
+    guideCanvas,
+    renderCanvas
+    ){
+    call.hidden = true;
+    videoElement.hidden = true;
+    guideCanvas.hidden = true;
+    guideCanvas.style.webkitTransform = "scaleX(-1)";
+    guideCanvas.style.position = 'absolute';
+    renderCanvas.style.position = 'absolute';
+}
+
 
 function drawLine(from, to){
     points = [];
