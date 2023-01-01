@@ -10,15 +10,6 @@ const videoElement = document.getElementById("my-video");
 const guideCanvas = document.getElementById("my-guides");
 // const live2d = document.getElementById("my-live2d");
 const ul = document.getElementById("videos");
-const alpha = document.getElementById("alpha");
-const beta = document.getElementById("beta");
-const gamma = document.getElementById("gamma");
-const alphaValue = document.getElementById("alphaValue");
-const betaValue = document.getElementById("betaValue");
-const gammaValue = document.getElementById("gammaValue");
-const remap = Kalidokit.Utils.remap;
-const clamp = Kalidokit.Utils.clamp;
-const lerp = Kalidokit.Vector.lerp;
 
 
 
@@ -31,8 +22,6 @@ renderer.setSize(640, 480);
 renderer.setPixelRatio(window.devicePixelRatio);
 ul.append(renderer.domElement);
 renderer.domElement.id = 'threeDID';
-const gl = renderer.getContext('webgl');
-const guideCtx = guideCanvas.getContext('2d');
 
 
 // scene
