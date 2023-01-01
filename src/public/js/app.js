@@ -1,7 +1,5 @@
-import { getHeadInfo, drawLine, fillFaceAll, fillFaceOutline } from "./canvas_utils.js";
-// import {FirstPersonControls} from "./FirstPersonControls.js"
-// import * as THREE from "../three/three.js";
-import { setCameraLight, setBonePony, rigFace, removeBodyPony, drawResults } from "../three/renderModule.js";
+import { getHeadInfo, drawLine, fillFaceAll, fillFaceOutline, initCanvas } from "./canvas_utils.js";
+import { setCameraLight, removeBodyPony, modelPath, setHolistic, processResults} from "../three/renderModule.js";
 
 const socket = io();
 
